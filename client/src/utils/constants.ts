@@ -41,7 +41,12 @@ export const QUOTE_POINTS = 3;
 // AI delay to simulate thinking
 export const AI_THINKING_DELAY = 1000;
 export const AI_CARD_PLAY_DELAY = 500;
+export const TRICK_RESULT_DELAY = 2000; // Delay before clearing trick cards
 
 // Card dimensions
 export const CARD_WIDTH = 120;
 export const CARD_HEIGHT = 168;
+
+// Responsive breakpoints
+export const MOBILE_BREAKPOINT = 768;
+export const TABLET_BREAKPOINT = 1024;

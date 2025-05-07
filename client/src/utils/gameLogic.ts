@@ -350,7 +350,48 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
   
   // Check if trick is complete
   if (newState.currentTrick.cards.length === 4) {
-    return completeTrick(newState);
+    // Change to trick result phase instead of completing trick immediately
+    newState.currentPhase = "trick_result";
+    
+    // Determine the winner but don't reset the trick yet
+    const trick = newState.currentTrick;
+    
+    if (!trick.leadSuit) {
+      throw new Error("Lead suit not set for trick");
+    }
+    
+    // Find winning card
+    let winningCard = trick.cards[0];
+    
+    for (let i = 1; i < trick.cards.length; i++) {
+      const card = trick.cards[i];
+      
+      // If trump is played and winning card is not trump, trump wins
+      if (newState.trump && card.card.suit === newState.trump && 
+          (winningCard.card.suit !== newState.trump)) {
+        winningCard = card;
+      }
+      // If same suit as winning card and higher value
+      else if (card.card.suit === winningCard.card.suit && 
+               card.card.value > winningCard.card.value) {
+        winningCard = card;
+      }
+      // If lead suit and winning card is not lead suit or trump
+      else if (card.card.suit === trick.leadSuit && 
+              winningCard.card.suit !== trick.leadSuit && 
+              (newState.trump === null || winningCard.card.suit !== newState.trump)) {
+        winningCard = card;
+      }
+    }
+    
+    // Set trick winner
+    trick.winner = winningCard.playerId;
+    
+    // Set message
+    const winnerName = newState.players[trick.winner].name;
+    newState.message = `${winnerName} won the trick!`;
+    
+    return newState;
   }
   
   const nextPlayer = newState.players[newState.playerOrder[newState.currentPlayerIndex]];

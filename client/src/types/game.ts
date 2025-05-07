@@ -25,6 +25,7 @@ export type GamePhase =
   | "full_quote_decision" 
   | "card_exchange" 
   | "trick_play" 
+  | "trick_result"
   | "round_end";
 
 export type QuoteType = "none" | "half" | "full";
