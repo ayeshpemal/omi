@@ -1,8 +1,9 @@
-import { FC, useState } from "react";
+import { FC, useState, CSSProperties } from "react";
 import { Card as CardType } from "../../types/game";
-import { CARD_HEIGHT, CARD_WIDTH, SUIT_COLORS, SUIT_SYMBOLS } from "../../utils/constants";
+import { CARD_HEIGHT, CARD_WIDTH, SUIT_COLORS, SUIT_SYMBOLS, MOBILE_BREAKPOINT } from "../../utils/constants";
 import { useGame } from "../../context/GameContext";
 import { useAudio } from "../../lib/stores/useAudio";
+import { useIsMobile } from "../../hooks/use-is-mobile";
 
 interface CardProps {
   card: CardType;
@@ -12,6 +13,7 @@ interface CardProps {
   faceDown?: boolean;
   size?: "small" | "normal" | "large";
   className?: string;
+  style?: CSSProperties;
 }
 
 export const Card: FC<CardProps> = ({
@@ -22,15 +24,17 @@ export const Card: FC<CardProps> = ({
   faceDown = false,
   size = "normal",
   className = "",
+  style = {},
 }) => {
   const { playHit } = useAudio();
   const [isHovering, setIsHovering] = useState(false);
+  const isMobile = useIsMobile();
   
-  // Size multipliers
+  // Size multipliers - adjust further down for mobile
   const sizes = {
-    small: 0.7,
-    normal: 1,
-    large: 1.2,
+    small: isMobile ? 0.6 : 0.7,
+    normal: isMobile ? 0.85 : 1,
+    large: isMobile ? 1.0 : 1.2,
   };
   
   const width = CARD_WIDTH * sizes[size];
@@ -44,11 +48,11 @@ export const Card: FC<CardProps> = ({
   };
   
   // Card styling
-  const cardStyle = {
+  const cardStyle: CSSProperties = {
     width: `${width}px`,
     height: `${height}px`,
     borderRadius: "8px",
-    position: "relative" as const,
+    position: "relative",
     backgroundColor: "white",
     boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
     border: isSelected ? "2px solid blue" : "1px solid #ddd",
@@ -57,6 +61,7 @@ export const Card: FC<CardProps> = ({
     transform: isHovering && isPlayable ? "translateY(-10px)" : (isSelected ? "translateY(-5px)" : "none"),
     cursor: isPlayable ? "pointer" : "default",
     opacity: isPlayable ? 1 : 0.8,
+    ...style,
   };
   
   // If the card is face down, render the back
@@ -125,10 +130,12 @@ export const CardPlaceholder: FC<{
   size?: "small" | "normal" | "large";
   className?: string;
 }> = ({ size = "normal", className = "" }) => {
+  const isMobile = useIsMobile();
+  
   const sizes = {
-    small: 0.7,
-    normal: 1,
-    large: 1.2,
+    small: isMobile ? 0.6 : 0.7,
+    normal: isMobile ? 0.85 : 1,
+    large: isMobile ? 1.0 : 1.2,
   };
   
   const width = CARD_WIDTH * sizes[size];
@@ -168,6 +175,7 @@ export const CardList: FC<{
   className = "",
 }) => {
   const { state } = useGame();
+  const isMobile = useIsMobile();
   
   const isPlayable = (card: CardType) => {
     if (!playableCards.length) return true;
@@ -178,14 +186,26 @@ export const CardList: FC<{
     return selectedCards.some(sc => sc.id === card.id);
   };
   
-  // Calculate fan width
-  const cardWidth = CARD_WIDTH * (size === "small" ? 0.7 : size === "large" ? 1.2 : 1);
-  const totalWidth = fanned ? cardWidth + (cards.length - 1) * overlap : cardWidth;
+  // Size multipliers - adjust for mobile
+  const sizes = {
+    small: isMobile ? 0.6 : 0.7,
+    normal: isMobile ? 0.85 : 1,
+    large: isMobile ? 1.0 : 1.2,
+  };
+  
+  // Calculate fan width with responsive sizing
+  const cardWidth = CARD_WIDTH * sizes[size];
+  const mobileOverlap = isMobile ? Math.max(15, overlap * 0.7) : overlap;
+  const totalWidth = fanned ? cardWidth + (cards.length - 1) * mobileOverlap : cardWidth;
   
   // Adjust overlap if maxWidth is provided and we exceed it
-  let adjustedOverlap = overlap;
-  if (maxWidth && totalWidth > maxWidth) {
-    adjustedOverlap = Math.max(15, (maxWidth - cardWidth) / (cards.length - 1));
+  let adjustedOverlap = mobileOverlap;
+  
+  // Default maxWidth for mobile if not provided
+  const autoMaxWidth = !maxWidth && isMobile ? 320 : maxWidth;
+  
+  if (autoMaxWidth && totalWidth > autoMaxWidth) {
+    adjustedOverlap = Math.max(10, (autoMaxWidth - cardWidth) / Math.max(1, cards.length - 1));
   }
   
   return (
@@ -193,10 +213,10 @@ export const CardList: FC<{
       style={{ 
         display: "flex", 
         justifyContent: "center",
-        width: maxWidth ? `${maxWidth}px` : "auto",
+        width: maxWidth ? `${maxWidth}px` : "100%",
         margin: "0 auto",
         position: "relative",
-        height: `${CARD_HEIGHT * (size === "small" ? 0.7 : size === "large" ? 1.2 : 1) + 15}px`,
+        height: `${CARD_HEIGHT * sizes[size] + 15}px`,
       }}
       className={className}
     >
