@@ -2,6 +2,7 @@ import { FC } from "react";
 import { Card, CardList } from "./Card";
 import { useGame } from "../../context/GameContext";
 import { Card as CardType } from "../../types/game";
+import { useIsMobile } from "../../hooks/use-is-mobile";
 
 interface PlayerHandProps {
   className?: string;
@@ -70,21 +71,44 @@ export const PlayerHand: FC<PlayerHandProps> = ({ className }) => {
   
   // Determine which cards are playable in the current context
   const playableCards = playerHand.filter(canPlayCard);
+  const isMobile = useIsMobile();
 
   return (
-    <div className={`player-hand ${className || ""}`}>
-      <div className="text-center mb-2 font-semibold">Your Hand</div>
+    <div className={`player-hand ${className || ""} w-full max-w-4xl mx-auto px-2`}>
+      <div className="text-center mb-2 font-semibold text-sm md:text-base">
+        {isPlayerTurn && state.currentPhase === "trick_play" && (
+          <span className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-2 py-1 rounded-full text-xs md:text-sm mr-2 animate-pulse">
+            Your Turn
+          </span>
+        )}
+        Your Hand
+        {state.currentPhase === "card_exchange" && (
+          <span className="block text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">
+            Select two cards to exchange with your teammate
+          </span>
+        )}
+      </div>
       
       <CardList
         cards={playerHand}
         selectedCards={selectedCards}
         onCardClick={handleCardClick}
         playableCards={playableCards}
-        size="normal"
+        size={isMobile ? "small" : "normal"}
         fanned={true}
-        overlap={40}
-        maxWidth={800}
+        overlap={isMobile ? 25 : 40}
+        maxWidth={isMobile ? undefined : 800} // Let it auto-calculate on mobile
+        className="transition-all duration-300"
       />
+      
+      {/* Contextual help text */}
+      {state.currentPhase === "trick_play" && isPlayerTurn && playableCards.length > 0 && (
+        <div className="text-center mt-2 text-xs md:text-sm text-gray-600 dark:text-gray-300">
+          {playableCards.length < playerHand.length 
+            ? "You must follow the lead suit" 
+            : "Select a card to play"}
+        </div>
+      )}
     </div>
   );
 };
