@@ -1,0 +1,97 @@
+Create a browser-based card game where a single human player can play OMI (a Sri Lankan 4-player trick-taking game using 32 cards) against 3 intelligent bots. This version is for solo practice and learning, but should include full game logic, including advanced features like Kapoothi, Full Quote, and Half Quote.
+
+✅ Features to Implement:
+🎴 1. Game Setup:
+Use a 32-card deck (7 to Ace in all suits).
+
+Divide 4 players into 2 teams: Player + Bot2 vs Bot1 + Bot3.
+
+Deal cards:
+
+First 4 cards → check for half quote.
+
+Then remaining 4 cards → allow full quote and trump selection.
+
+💬 2. Game Phases:
+🟩 A. Half Quote Phase (after first 4 cards):
+Player and eligible bots can declare Half Quote (only if not choosing trump).
+
+Only that player plays vs. all others.
+
+No card exchange.
+
+Must win all 8 tricks to succeed. Win = +3 pts; Loss = -3 pts.
+
+🟦 B. Trump Declaration:
+If no half quote, continue to trump declaration.
+
+Player or bots can declare trump suit.
+
+Only trump-deciding team can’t Full Quote.
+
+🟨 C. Full Quote Phase (after all 8 cards):
+If trump selected, remaining eligible players can declare Full Quote.
+
+Allow 2-card exchange with teammate.
+
+Only declaring player plays vs. 3 others.
+
+Must win all 8 tricks. Win = +3 pts; Loss = -3 pts.
+
+🂠 3. Gameplay (Trick Play):
+8 rounds, each with 4 cards played in turn.
+
+Rules:
+
+Follow suit if possible.
+
+Highest card of the lead suit wins unless trump is played.
+
+Trump beats all.
+
+🧠 4. Bot AI (Phase 1 – Rule-Based):
+Simple strategy:
+
+Follow suit.
+
+Use trump if needed to win.
+
+Save high-value cards.
+
+Add basic logic for:
+
+Half/full quote decision-making.
+
+Card exchange logic in full quote.
+
+🧾 5. Scoring:
+Regular round: team that wins 5+ tricks wins 1 point.
+
+Kapoothi (කපෝති): If a team wins all 8 tricks, award 3 points.
+
+Quote failures give 3 points to the opponent team.
+
+🖥️ 6. Frontend (UI):
+Display cards, tricks, current trump.
+
+Let player click cards to play.
+
+Show bot moves with animations.
+
+Show score and round history.
+
+🧱 Technologies (Suggested):
+Frontend: HTML + CSS + JavaScript or React
+
+Game Logic: JavaScript/TypeScript module
+
+State Handling: Redux or context API (if using React)
+
+No backend needed for solo play
+
+🧩 Optional Enhancements:
+Undo/replay last round
+
+Hints/tips for beginners
+
+Difficulty levels for bots
