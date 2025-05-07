@@ -7,7 +7,13 @@ import { createDeck, dealCards, shuffleDeck } from "./deckUtils";
  */
 export function initializeGameState(): GameState {
   // Define players and their teams
-  const players = {
+  const players: Record<PlayerId, {
+    id: PlayerId;
+    name: string;
+    hand: Card[];
+    isHuman: boolean;
+    team: "team1" | "team2";
+  }> = {
     player: {
       id: "player",
       name: "You",

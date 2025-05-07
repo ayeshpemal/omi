@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useReducer, useState } from "react";
 import { Card, GameAction, GameState, PlayerId } from "../types/game";
 import { gameReducer, initializeGameState } from "../utils/gameLogic";
-import { AI_CARD_PLAY_DELAY, AI_THINKING_DELAY } from "../utils/constants";
+import { AI_CARD_PLAY_DELAY, AI_THINKING_DELAY, TRICK_RESULT_DELAY } from "../utils/constants";
 import { chooseCardsToExchange, selectCardToPlay, shouldDeclareFullQuote, shouldDeclareHalfQuote, chooseTrumpSuit } from "../utils/aiLogic";
 import { useAudio } from "../lib/stores/useAudio";
 
@@ -190,6 +190,18 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return () => clearTimeout(aiAction);
     }
   }, [state.currentPhase, state.currentPlayerIndex, state.playerOrder]);
+  
+  // Handle trick result phase with delay
+  useEffect(() => {
+    if (state.currentPhase === "trick_result") {
+      const trickResultTimer = setTimeout(() => {
+        playSuccess();
+        dispatch({ type: "COMPLETE_TRICK" });
+      }, TRICK_RESULT_DELAY);
+      
+      return () => clearTimeout(trickResultTimer);
+    }
+  }, [state.currentPhase, dispatch, playSuccess]);
   
   // Start a new game by dealing cards when mounted
   useEffect(() => {
