@@ -5,6 +5,7 @@ import { PlayArea } from "./PlayArea";
 import { ScoreBoard } from "./ScoreBoard";
 import { GameControls } from "./GameControls";
 import { GameInfo } from "./GameInfo";
+import { TrickSummary } from "./TrickSummary";
 import { CardExchange } from "./CardExchange";
 import { useAudio } from "../../lib/stores/useAudio";
 import { useGame } from "../../context/GameContext";
@@ -49,8 +50,11 @@ export const GameBoard: FC = () => {
         <div className="w-64 flex flex-col gap-4">
           <ScoreBoard className="flex-none" />
           
+          {/* Trick Summary - Always visible */}
+          <TrickSummary className="flex-none" />
+          
           {/* Game controls */}
-          <GameControls className="flex-none" />
+          <GameControls className="flex-none mt-auto" />
         </div>
         
         {/* Central game area */}

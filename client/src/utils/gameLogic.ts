@@ -78,6 +78,11 @@ export function initializeGameState(): GameState {
       bot3: [],
     },
     message: "Game starting... Dealing cards",
+    trickSummary: {
+      team1Tricks: 0,
+      team2Tricks: 0,
+      tricksRequired: TOTAL_TRICKS_PER_ROUND
+    }
   };
 }
 
@@ -488,6 +493,19 @@ export function completeTrick(state: GameState): GameState {
     winner: null,
   };
   
+  // Update trick summary
+  const winnerTeam = newState.players[trick.winner].team;
+  if (winnerTeam === "team1") {
+    newState.trickSummary.team1Tricks += 1;
+  } else {
+    newState.trickSummary.team2Tricks += 1;
+  }
+  
+  // For half quote, we adjust the total tricks required
+  if (newState.quoteType === "half") {
+    newState.trickSummary.tricksRequired = 4;
+  }
+  
   // Winner starts next trick
   const winnerIndex = newState.playerOrder.indexOf(winningCard.playerId);
   newState.currentPlayerIndex = winnerIndex;
@@ -506,14 +524,18 @@ export function completeTrick(state: GameState): GameState {
   
   const nextPlayer = newState.players[newState.playerOrder[winnerIndex]];
   const winnerName = newState.players[trick.winner].name;
+  const team1Name = "Your team";
+  const team2Name = "Opponent team";
   
-  // Update message based on who won and who plays next
+  // Update message based on who won and who plays next with trick summary
+  const summaryText = `[${team1Name}: ${newState.trickSummary.team1Tricks}, ${team2Name}: ${newState.trickSummary.team2Tricks}]`;
+  
   if (trick.winner === "player") {
-    newState.message = `You won the trick! Your turn to play next.`;
+    newState.message = `You won the trick! ${summaryText} Your turn to play next.`;
   } else if (newState.playerOrder[winnerIndex] === "player") {
-    newState.message = `${winnerName} won the trick! Your turn to play next.`;
+    newState.message = `${winnerName} won the trick! ${summaryText} Your turn to play next.`;
   } else {
-    newState.message = `${winnerName} won the trick! ${nextPlayer.name}'s turn to play next.`;
+    newState.message = `${winnerName} won the trick! ${summaryText} ${nextPlayer.name}'s turn to play next.`;
   }
   
   return newState;
@@ -636,14 +658,17 @@ export function startNewRound(state: GameState): GameState {
   newState.scores = { ...state.scores };
   newState.roundHistory = [...state.roundHistory];
   
-  // Rotate player order for trump selection
-  // If there was a trumpDecider last round, start with the next player
+  // Standard player order
+  newState.playerOrder = ["player", "bot1", "bot2", "bot3"];
+  
+  // Rotate trump declaration for the next round
+  // If there was a trumpDecider last round, the next player gets to start this round
   if (state.trumpDecider) {
-    const lastTrumpDeciderIndex = state.playerOrder.findIndex(id => id === state.trumpDecider);
+    const standardOrder = ["player", "bot1", "bot2", "bot3"];
+    const lastTrumpDeciderIndex = standardOrder.indexOf(state.trumpDecider);
     if (lastTrumpDeciderIndex !== -1) {
-      // Find the next player index (wrapping around to 0 if needed)
+      // Find the next player index in the rotation
       const nextPlayerIndex = (lastTrumpDeciderIndex + 1) % 4;
-      // Start with the next player
       newState.currentPlayerIndex = nextPlayerIndex;
     }
   }
@@ -657,6 +682,13 @@ export function startNewRound(state: GameState): GameState {
   newState.fullQuotePossible = true;
   newState.playersPassedFullQuote = new Set<PlayerId>();
   
+  // Reset trick summary for new round
+  newState.trickSummary = {
+    team1Tricks: 0,
+    team2Tricks: 0,
+    tricksRequired: TOTAL_TRICKS_PER_ROUND
+  };
+  
   // Clear any exchanged cards from previous round
   newState.exchangedCards = {
     player: [],
@@ -665,9 +697,9 @@ export function startNewRound(state: GameState): GameState {
     bot3: [],
   };
   
-  // Set starting message
+  // Set starting message with information about the starting player
   const firstPlayer = newState.players[newState.playerOrder[newState.currentPlayerIndex]];
-  newState.message = `Starting new round... ${firstPlayer.name} will get first chance to decide on Half Quote.`;
+  newState.message = `Starting new round... ${firstPlayer.name} gets first chance for Half Quote and Trump selection.`;
   
   // Deal initial cards
   return dealInitialCards(newState);

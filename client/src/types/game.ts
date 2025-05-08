@@ -60,6 +60,11 @@ export interface GameState {
   exchangedCards: Record<PlayerId, Card[]>;
   message: string;
   playersPassedFullQuote?: Set<PlayerId>; // Track players who have passed on full quote
+  trickSummary: {
+    team1Tricks: number; // Number of tricks won by team1
+    team2Tricks: number; // Number of tricks won by team2
+    tricksRequired: number; // Total tricks in the round
+  };
 }
 
 export type GameAction = 
