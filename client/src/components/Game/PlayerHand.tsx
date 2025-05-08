@@ -73,8 +73,26 @@ export const PlayerHand: FC<PlayerHandProps> = ({ className }) => {
   const playableCards = playerHand.filter(canPlayCard);
   const isMobile = useIsMobile();
 
+  // Adjust card display settings based on game phase
+  const isSpecialPhase = ["half_quote_decision", "trump_declaration", "full_quote_decision"].includes(state.currentPhase);
+  
+  // Use smaller overlap in special phases to make sure all cards are visible
+  const cardOverlap = isSpecialPhase 
+    ? (isMobile ? 15 : 30) 
+    : (isMobile ? 25 : 40);
+  
+  // Adjust card size in decision phases for better visibility
+  const cardSize = isSpecialPhase && isMobile 
+    ? "small" 
+    : isMobile ? "small" : "normal";
+  
+  // Make sure cards are positioned correctly in special phases
+  const cardListStyles = isSpecialPhase 
+    ? { transform: "translateY(-10px)", marginBottom: "10px" } 
+    : {};
+
   return (
-    <div className={`player-hand ${className || ""} w-full max-w-4xl mx-auto px-2`}>
+    <div className={`player-hand ${className || ""} w-full max-w-4xl mx-auto px-2 ${isSpecialPhase ? 'relative' : ''}`}>
       <div className="text-center mb-2 font-semibold text-sm md:text-base">
         {isPlayerTurn && state.currentPhase === "trick_play" && (
           <span className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-2 py-1 rounded-full text-xs md:text-sm mr-2 animate-pulse">
@@ -94,11 +112,12 @@ export const PlayerHand: FC<PlayerHandProps> = ({ className }) => {
         selectedCards={selectedCards}
         onCardClick={handleCardClick}
         playableCards={playableCards}
-        size={isMobile ? "small" : "normal"}
+        size={cardSize}
         fanned={true}
-        overlap={isMobile ? 25 : 40}
+        overlap={cardOverlap}
         maxWidth={isMobile ? undefined : 800} // Let it auto-calculate on mobile
         className="transition-all duration-300"
+        style={cardListStyles}
       />
       
       {/* Contextual help text */}
@@ -107,6 +126,15 @@ export const PlayerHand: FC<PlayerHandProps> = ({ className }) => {
           {playableCards.length < playerHand.length 
             ? "You must follow the lead suit" 
             : "Select a card to play"}
+        </div>
+      )}
+      
+      {/* Special notification for decision phases */}
+      {isSpecialPhase && (
+        <div className="text-center text-xs text-gray-600 dark:text-gray-300 mt-2">
+          <span className="inline-block bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+            Your cards are still available for reference
+          </span>
         </div>
       )}
     </div>
