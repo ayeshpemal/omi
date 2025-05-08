@@ -332,13 +332,27 @@ export function exchangeCards(
     // Move to trick play phase
     newState.currentPhase = "trick_play";
     
-    // The quote player goes first
+    // In full quote, only the player who declared the quote participates (not their teammate)
     if (newState.quotePlayer) {
+      // Find the teammate of the quote declarer
+      const quoteTeam = newState.players[newState.quotePlayer].team;
+      const teammateId = Object.values(newState.players).find(
+        p => p.id !== newState.quotePlayer && p.team === quoteTeam
+      )?.id;
+      
+      // Create a modified player order that skips the teammate
+      if (teammateId) {
+        newState.playerOrder = newState.playerOrder.filter(id => id !== teammateId);
+      }
+      
+      // The quote player goes first
       const quotePlayerIndex = newState.playerOrder.indexOf(newState.quotePlayer);
       newState.currentPlayerIndex = quotePlayerIndex;
+      
+      newState.message = `Card exchange complete. ${newState.players[newState.quotePlayer].name} will play alone for Full Quote!`;
+    } else {
+      newState.message = "Card exchange complete. Starting trick play!";
     }
-    
-    newState.message = "Card exchange complete. Starting trick play!";
   } else {
     // Determine which teammate needs to exchange now
     const otherTeammate = teamPlayers.find(pid => pid !== fromPlayer);
@@ -622,9 +636,17 @@ export function startNewRound(state: GameState): GameState {
   newState.scores = { ...state.scores };
   newState.roundHistory = [...state.roundHistory];
   
-  // Make sure we're using the standard player order regardless of any changes in the previous round
-  newState.playerOrder = ["player", "bot1", "bot2", "bot3"];
-  newState.currentPlayerIndex = 0;
+  // Rotate player order for trump selection
+  // If there was a trumpDecider last round, start with the next player
+  if (state.trumpDecider) {
+    const lastTrumpDeciderIndex = state.playerOrder.findIndex(id => id === state.trumpDecider);
+    if (lastTrumpDeciderIndex !== -1) {
+      // Find the next player index (wrapping around to 0 if needed)
+      const nextPlayerIndex = (lastTrumpDeciderIndex + 1) % 4;
+      // Start with the next player
+      newState.currentPlayerIndex = nextPlayerIndex;
+    }
+  }
   
   // Reset phase-specific variables
   newState.trumpDecider = null;
@@ -633,6 +655,7 @@ export function startNewRound(state: GameState): GameState {
   newState.quotePlayer = null;
   newState.halfQuotePossible = true;
   newState.fullQuotePossible = true;
+  newState.playersPassedFullQuote = new Set<PlayerId>();
   
   // Clear any exchanged cards from previous round
   newState.exchangedCards = {
@@ -643,7 +666,8 @@ export function startNewRound(state: GameState): GameState {
   };
   
   // Set starting message
-  newState.message = "Starting new round... Dealing cards";
+  const firstPlayer = newState.players[newState.playerOrder[newState.currentPlayerIndex]];
+  newState.message = `Starting new round... ${firstPlayer.name} will get first chance to decide on Half Quote.`;
   
   // Deal initial cards
   return dealInitialCards(newState);
