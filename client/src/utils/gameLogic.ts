@@ -257,24 +257,29 @@ export function declareFullQuote(state: GameState, playerId: PlayerId): GameStat
 export function passFullQuote(state: GameState, playerId: PlayerId): GameState {
   const newState = { ...state };
   
+  // Initialize the set of players who have passed if it doesn't exist
+  if (!newState.playersPassedFullQuote) {
+    newState.playersPassedFullQuote = new Set<PlayerId>();
+  }
+  
+  // Add the current player to the set of players who have passed
+  newState.playersPassedFullQuote.add(playerId);
+  
   const team = newState.players[playerId].team;
   
-  // Find all players on the same team who haven't had a turn yet
-  // Filter the player order starting from the current player to the end
-  const currentPlayerIdx = newState.playerOrder.indexOf(playerId);
-  const remainingPlayerOrder = [...newState.playerOrder.slice(currentPlayerIdx + 1), ...newState.playerOrder.slice(0, currentPlayerIdx)];
-  
-  // Find the next eligible player from the same team
-  const nextEligiblePlayer = remainingPlayerOrder.find(
-    pid => newState.players[pid].team === team
+  // Find all players on the same team who haven't passed yet
+  const eligibleTeammates = newState.playerOrder.filter(pid => 
+    newState.players[pid].team === team && 
+    pid !== playerId && 
+    !newState.playersPassedFullQuote?.has(pid)
   );
   
   // If there's another eligible player on the same team, move to them
-  if (nextEligiblePlayer) {
-    const nextPlayerIndex = newState.playerOrder.indexOf(nextEligiblePlayer);
+  if (eligibleTeammates.length > 0) {
+    const nextPlayerIndex = newState.playerOrder.indexOf(eligibleTeammates[0]);
     newState.currentPlayerIndex = nextPlayerIndex;
     
-    newState.message = `${newState.players[nextEligiblePlayer].name}'s turn to decide on Full Quote`;
+    newState.message = `${newState.players[eligibleTeammates[0]].name}'s turn to decide on Full Quote`;
     return newState;
   }
   

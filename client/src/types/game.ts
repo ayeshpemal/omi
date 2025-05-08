@@ -59,6 +59,7 @@ export interface GameState {
   fullQuotePossible: boolean;
   exchangedCards: Record<PlayerId, Card[]>;
   message: string;
+  playersPassedFullQuote?: Set<PlayerId>; // Track players who have passed on full quote
 }
 
 export type GameAction = 
