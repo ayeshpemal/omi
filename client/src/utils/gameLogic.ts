@@ -141,20 +141,28 @@ export function declareHalfQuote(state: GameState, playerId: PlayerId): GameStat
   // Skip straight to trick play phase
   newState.currentPhase = "trick_play";
   
-  // Deal remaining cards
-  for (let i = 0; i < 4; i++) {
-    for (const pId of newState.playerOrder) {
-      const { dealt, remaining } = dealCards(newState.deck, 1);
-      newState.players[pId].hand.push(...dealt);
-      newState.deck = remaining;
-    }
+  // In half quote, we don't deal the remaining cards
+  // The player must win with just the 4 cards they have
+  
+  // Store the player's team
+  const quoteTeam = newState.players[playerId].team;
+  
+  // Find the teammate of the quote declarer
+  const teammateId = Object.values(newState.players).find(
+    p => p.id !== playerId && p.team === quoteTeam
+  )?.id;
+  
+  // Create a modified player order that skips the teammate
+  // For half quote, the teammate doesn't participate
+  if (teammateId) {
+    newState.playerOrder = newState.playerOrder.filter(id => id !== teammateId);
   }
   
   // The quote player goes first
   const quotePlayerIndex = newState.playerOrder.indexOf(playerId);
   newState.currentPlayerIndex = quotePlayerIndex;
   
-  newState.message = `${newState.players[playerId].name} declared Half Quote! They must win all tricks.`;
+  newState.message = `${newState.players[playerId].name} declared Half Quote! They must win all tricks with just 4 cards. Their teammate will not participate.`;
   
   return newState;
 }
@@ -250,17 +258,23 @@ export function passFullQuote(state: GameState, playerId: PlayerId): GameState {
   const newState = { ...state };
   
   const team = newState.players[playerId].team;
-  const otherTeamPlayers = newState.playerOrder.filter(
-    pid => newState.players[pid].team === team && pid !== playerId
+  
+  // Find all players on the same team who haven't had a turn yet
+  // Filter the player order starting from the current player to the end
+  const currentPlayerIdx = newState.playerOrder.indexOf(playerId);
+  const remainingPlayerOrder = [...newState.playerOrder.slice(currentPlayerIdx + 1), ...newState.playerOrder.slice(0, currentPlayerIdx)];
+  
+  // Find the next eligible player from the same team
+  const nextEligiblePlayer = remainingPlayerOrder.find(
+    pid => newState.players[pid].team === team
   );
   
-  // If there are other team members who can quote, move to them
-  if (otherTeamPlayers.length > 0) {
-    const nextQuotePlayer = otherTeamPlayers[0];
-    const nextPlayerIndex = newState.playerOrder.indexOf(nextQuotePlayer);
+  // If there's another eligible player on the same team, move to them
+  if (nextEligiblePlayer) {
+    const nextPlayerIndex = newState.playerOrder.indexOf(nextEligiblePlayer);
     newState.currentPlayerIndex = nextPlayerIndex;
     
-    newState.message = `${newState.players[nextQuotePlayer].name}'s turn to decide on Full Quote`;
+    newState.message = `${newState.players[nextEligiblePlayer].name}'s turn to decide on Full Quote`;
     return newState;
   }
   
@@ -352,10 +366,11 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
   }
   
   // Move to next player
-  newState.currentPlayerIndex = (newState.currentPlayerIndex + 1) % 4;
+  newState.currentPlayerIndex = (newState.currentPlayerIndex + 1) % newState.playerOrder.length;
   
-  // Check if trick is complete
-  if (newState.currentTrick.cards.length === 4) {
+  // Check if trick is complete - in Half Quote we have 3 players, otherwise 4
+  const playersInGame = newState.playerOrder.length;
+  if (newState.currentTrick.cards.length === playersInGame) {
     // Change to trick result phase instead of completing trick immediately
     newState.currentPhase = "trick_result";
     
@@ -458,13 +473,29 @@ export function completeTrick(state: GameState): GameState {
   const winnerIndex = newState.playerOrder.indexOf(winningCard.playerId);
   newState.currentPlayerIndex = winnerIndex;
   
+  // For half quote, we consider the round complete after 4 tricks
+  // For regular play, after 8 tricks
+  const tricksNeeded = newState.quoteType === "half" ? 4 : TOTAL_TRICKS_PER_ROUND;
+  
   // Check if round is complete
-  if (newState.completedTricks.length === TOTAL_TRICKS_PER_ROUND) {
+  if (newState.completedTricks.length === tricksNeeded) {
     return endRound(newState);
   }
   
+  // Set the game phase back to trick_play so players can continue playing
+  newState.currentPhase = "trick_play";
+  
   const nextPlayer = newState.players[newState.playerOrder[winnerIndex]];
-  newState.message = `${nextPlayer.name} won the trick! Their turn to play next.`;
+  const winnerName = newState.players[trick.winner].name;
+  
+  // Update message based on who won and who plays next
+  if (trick.winner === "player") {
+    newState.message = `You won the trick! Your turn to play next.`;
+  } else if (newState.playerOrder[winnerIndex] === "player") {
+    newState.message = `${winnerName} won the trick! Your turn to play next.`;
+  } else {
+    newState.message = `${winnerName} won the trick! ${nextPlayer.name}'s turn to play next.`;
+  }
   
   return newState;
 }
@@ -480,7 +511,9 @@ export function endRound(state: GameState): GameState {
     trick => trick.winner && newState.players[trick.winner].team === "team1"
   ).length;
   
-  const team2Tricks = TOTAL_TRICKS_PER_ROUND - team1Tricks;
+  // For half quote, the total tricks is 4, otherwise it's 8
+  const totalTricks = newState.quoteType === "half" ? 4 : TOTAL_TRICKS_PER_ROUND;
+  const team2Tricks = totalTricks - team1Tricks;
   
   let team1Points = 0;
   let team2Points = 0;
@@ -494,7 +527,7 @@ export function endRound(state: GameState): GameState {
     const quoteTricks = quoteTeam === "team1" ? team1Tricks : team2Tricks;
     
     // For both half and full quote, player must win all tricks
-    if (quoteTricks === TOTAL_TRICKS_PER_ROUND) {
+    if (quoteTricks === totalTricks) {
       // Quote succeeded
       if (quoteTeam === "team1") {
         team1Points = QUOTE_POINTS;
@@ -514,10 +547,10 @@ export function endRound(state: GameState): GameState {
   // Normal scoring if no quote
   else {
     // Check for Kapoothi (one team won all tricks)
-    if (team1Tricks === TOTAL_TRICKS_PER_ROUND) {
+    if (team1Tricks === totalTricks) {
       team1Points = KAPOOTHI_POINTS;
       wasKapoothi = true;
-    } else if (team2Tricks === TOTAL_TRICKS_PER_ROUND) {
+    } else if (team2Tricks === totalTricks) {
       team2Points = KAPOOTHI_POINTS;
       wasKapoothi = true;
     } 
@@ -560,7 +593,7 @@ export function endRound(state: GameState): GameState {
       resultMessage = `${quoteTeamName} failed the ${quoteTypeStr} Quote! Opponents get +${QUOTE_POINTS} points`;
     }
   } else if (wasKapoothi) {
-    const kapTeam = team1Tricks === TOTAL_TRICKS_PER_ROUND ? "Your team" : "Opponent team";
+    const kapTeam = team1Tricks === totalTricks ? "Your team" : "Opponent team";
     resultMessage = `${kapTeam} won all tricks (Kapoothi)! +${KAPOOTHI_POINTS} points`;
   } else {
     const winTeam = team1WinsRound ? "Your team" : "Opponent team";
@@ -577,12 +610,35 @@ export function endRound(state: GameState): GameState {
  * Starts a new round of the game
  */
 export function startNewRound(state: GameState): GameState {
-  // Keep scores and round history, reset everything else
-  const newState = {
-    ...initializeGameState(),
-    scores: { ...state.scores },
-    roundHistory: [...state.roundHistory],
+  // Create a new game state
+  const newState = initializeGameState();
+  
+  // Keep scores and round history from the previous state
+  newState.scores = { ...state.scores };
+  newState.roundHistory = [...state.roundHistory];
+  
+  // Make sure we're using the standard player order regardless of any changes in the previous round
+  newState.playerOrder = ["player", "bot1", "bot2", "bot3"];
+  newState.currentPlayerIndex = 0;
+  
+  // Reset phase-specific variables
+  newState.trumpDecider = null;
+  newState.trump = null;
+  newState.quoteType = "none";
+  newState.quotePlayer = null;
+  newState.halfQuotePossible = true;
+  newState.fullQuotePossible = true;
+  
+  // Clear any exchanged cards from previous round
+  newState.exchangedCards = {
+    player: [],
+    bot1: [],
+    bot2: [],
+    bot3: [],
   };
+  
+  // Set starting message
+  newState.message = "Starting new round... Dealing cards";
   
   // Deal initial cards
   return dealInitialCards(newState);
