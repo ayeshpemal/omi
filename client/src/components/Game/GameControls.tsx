@@ -27,42 +27,28 @@ export const GameControls: FC<GameControlsProps> = ({ className }) => {
   const renderHalfQuoteControls = () => {
     if (state.currentPhase === "half_quote_decision" && isPlayerTurn) {
       return (
-        <div className="flex flex-col space-y-3">
-          <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-center`}>Half Quote Decision</h3>
-          <div className="bg-amber-50 dark:bg-amber-950 p-2 rounded-md mb-2">
-            <p className="text-xs md:text-sm text-center">
+        <div className="flex flex-col space-y-2">
+          <h3 className="text-base font-semibold text-center">Half Quote Decision</h3>
+          <div className="bg-amber-50 dark:bg-amber-950 p-2 rounded-md mb-1">
+            <p className="text-xs text-center">
               Declaring Half Quote means your team must win <strong>all 8 tricks</strong> to score 3 points!
             </p>
           </div>
-          <div className={`flex ${isMobile ? 'flex-col space-y-2' : 'flex-row space-x-3'}`}>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  onClick={declareHalfQuote} 
-                  className="bg-green-600 hover:bg-green-700 transition-all"
-                  size={isMobile ? "sm" : "default"}
-                >
-                  Declare Half Quote
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <p className="text-sm">Commit to win all tricks for an extra 3 points.</p>
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  onClick={passHalfQuote} 
-                  variant="outline"
-                  size={isMobile ? "sm" : "default"}
-                >
-                  Pass
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <p className="text-sm">Skip bidding and let others decide trump.</p>
-              </PopoverContent>
-            </Popover>
+          <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-3">
+            <Button 
+              onClick={declareHalfQuote} 
+              className="bg-green-600 hover:bg-green-700 transition-all"
+              size="sm"
+            >
+              Declare Half Quote
+            </Button>
+            <Button 
+              onClick={passHalfQuote} 
+              variant="outline"
+              size="sm"
+            >
+              Pass
+            </Button>
           </div>
         </div>
       );
@@ -73,35 +59,30 @@ export const GameControls: FC<GameControlsProps> = ({ className }) => {
   const renderTrumpControls = () => {
     if (state.currentPhase === "trump_declaration" && isPlayerTurn) {
       return (
-        <div className="flex flex-col space-y-3">
-          <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-center`}>
+        <div className="flex flex-col space-y-2">
+          <h3 className="text-base font-semibold text-center">
             Trump Declaration
           </h3>
-          <div className="bg-blue-50 dark:bg-blue-950 p-2 rounded-md mb-2">
-            <p className="text-xs md:text-sm text-center">
-              Select a trump suit. Trump cards will beat any other suit in a trick.
+          <div className="bg-blue-50 dark:bg-blue-950 p-2 rounded-md mb-1">
+            <p className="text-xs text-center">
+              Select a trump suit. Trump cards beat any other suit in a trick.
             </p>
           </div>
-          <div className="flex space-x-3 justify-center">
+          <div className="grid grid-cols-4 gap-1 justify-items-center">
             {(["hearts", "diamonds", "clubs", "spades"] as Suit[]).map(suit => (
-              <Popover key={suit}>
-                <PopoverTrigger asChild>
-                  <Button
-                    onClick={() => declareTrump(suit)}
-                    className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} text-xl ${
-                      suit === "hearts" || suit === "diamonds" 
-                        ? "text-red-600 hover:bg-red-50" 
-                        : "text-black hover:bg-gray-50"
-                    } transition-all`}
-                    variant="outline"
-                  >
-                    {SUIT_SYMBOLS[suit]}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent>
-                  <p className="text-sm capitalize">{suit} - trump suit</p>
-                </PopoverContent>
-              </Popover>
+              <Button
+                key={suit}
+                onClick={() => declareTrump(suit)}
+                className={`w-12 h-12 text-xl ${
+                  suit === "hearts" || suit === "diamonds" 
+                    ? "text-red-600 hover:bg-red-50" 
+                    : "text-black hover:bg-gray-50"
+                } transition-all`}
+                variant="outline"
+                title={`Select ${suit} as trump`}
+              >
+                {SUIT_SYMBOLS[suit]}
+              </Button>
             ))}
           </div>
         </div>
@@ -119,12 +100,12 @@ export const GameControls: FC<GameControlsProps> = ({ className }) => {
         
       if (!canDeclareFullQuote) {
         return (
-          <div className="flex flex-col space-y-3">
-            <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-center`}>
+          <div className="flex flex-col space-y-2">
+            <h3 className="text-base font-semibold text-center">
               Full Quote Decision
             </h3>
-            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md">
-              <p className="text-xs md:text-sm text-center">
+            <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-md">
+              <p className="text-xs text-center">
                 Your team declared trump, so you cannot declare Full Quote.
               </p>
             </div>
@@ -133,28 +114,28 @@ export const GameControls: FC<GameControlsProps> = ({ className }) => {
       }
       
       return (
-        <div className="flex flex-col space-y-3">
-          <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-center`}>
+        <div className="flex flex-col space-y-2">
+          <h3 className="text-base font-semibold text-center">
             Full Quote Decision
           </h3>
-          <div className="bg-amber-50 dark:bg-amber-950 p-2 rounded-md mb-2">
-            <p className="text-xs md:text-sm text-center">
+          <div className="bg-amber-50 dark:bg-amber-950 p-2 rounded-md mb-1">
+            <p className="text-xs text-center">
               Declaring Full Quote allows you to exchange cards with your teammate. 
-              You must win <strong>all 8 tricks</strong> to score 3 points!
+              Win <strong>all 8 tricks</strong> to score 3 points!
             </p>
           </div>
-          <div className={`flex ${isMobile ? 'flex-col space-y-2' : 'flex-row space-x-3'}`}>
+          <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-3">
             <Button 
               onClick={declareFullQuote} 
               className="bg-green-600 hover:bg-green-700 transition-all"
-              size={isMobile ? "sm" : "default"}
+              size="sm"
             >
               Declare Full Quote
             </Button>
             <Button 
               onClick={passFullQuote} 
               variant="outline"
-              size={isMobile ? "sm" : "default"}
+              size="sm"
             >
               Pass
             </Button>
@@ -234,7 +215,7 @@ export const GameControls: FC<GameControlsProps> = ({ className }) => {
   };
 
   return (
-    <div className={`game-controls ${isMobile ? 'p-3' : 'p-4'} bg-white dark:bg-gray-800 rounded-lg shadow-md transition-all ${className || ""}`}>
+    <div className={`game-controls p-2 sm:p-3 bg-white dark:bg-gray-800 rounded-lg shadow-md transition-all max-h-[calc(100vh-250px)] overflow-y-auto ${className || ""}`}>
       {renderGameMessage()}
       {renderHalfQuoteControls()}
       {renderTrumpControls()}
@@ -243,9 +224,9 @@ export const GameControls: FC<GameControlsProps> = ({ className }) => {
       
       {/* Card exchange info */}
       {state.currentPhase === "card_exchange" && (
-        <div className="mt-3 text-center text-sm">
+        <div className="mt-2 text-center text-sm">
           <div className="bg-blue-50 dark:bg-blue-950 p-2 rounded-md">
-            <p>Select two cards from your hand to exchange with your teammate.</p>
+            <p className="text-xs">Select two cards from your hand to exchange with your teammate.</p>
             <p className="text-xs mt-1 text-gray-600 dark:text-gray-300">
               Exchange good cards to help your team win all tricks!
             </p>
