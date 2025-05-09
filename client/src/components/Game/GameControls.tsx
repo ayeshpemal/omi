@@ -4,6 +4,7 @@ import { Button } from "../ui/button";
 import { SUIT_SYMBOLS, MOBILE_BREAKPOINT } from "../../utils/constants";
 import { Suit } from "../../types/game";
 import { useIsMobile } from "../../hooks/use-is-mobile";
+import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 
 interface GameControlsProps {
   className?: string;
@@ -34,20 +35,34 @@ export const GameControls: FC<GameControlsProps> = ({ className }) => {
             </p>
           </div>
           <div className={`flex ${isMobile ? 'flex-col space-y-2' : 'flex-row space-x-3'}`}>
-            <Button 
-              onClick={declareHalfQuote} 
-              className="bg-green-600 hover:bg-green-700 transition-all"
-              size={isMobile ? "sm" : "default"}
-            >
-              Declare Half Quote
-            </Button>
-            <Button 
-              onClick={passHalfQuote} 
-              variant="outline"
-              size={isMobile ? "sm" : "default"}
-            >
-              Pass
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  onClick={declareHalfQuote} 
+                  className="bg-green-600 hover:bg-green-700 transition-all"
+                  size={isMobile ? "sm" : "default"}
+                >
+                  Declare Half Quote
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <p className="text-sm">Commit to win all tricks for an extra 3 points.</p>
+              </PopoverContent>
+            </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  onClick={passHalfQuote} 
+                  variant="outline"
+                  size={isMobile ? "sm" : "default"}
+                >
+                  Pass
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <p className="text-sm">Skip bidding and let others decide trump.</p>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       );
@@ -69,18 +84,24 @@ export const GameControls: FC<GameControlsProps> = ({ className }) => {
           </div>
           <div className="flex space-x-3 justify-center">
             {(["hearts", "diamonds", "clubs", "spades"] as Suit[]).map(suit => (
-              <Button
-                key={suit}
-                onClick={() => declareTrump(suit)}
-                className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} text-xl ${
-                  suit === "hearts" || suit === "diamonds" 
-                    ? "text-red-600 hover:bg-red-50" 
-                    : "text-black hover:bg-gray-50"
-                } transition-all`}
-                variant="outline"
-              >
-                {SUIT_SYMBOLS[suit]}
-              </Button>
+              <Popover key={suit}>
+                <PopoverTrigger asChild>
+                  <Button
+                    onClick={() => declareTrump(suit)}
+                    className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} text-xl ${
+                      suit === "hearts" || suit === "diamonds" 
+                        ? "text-red-600 hover:bg-red-50" 
+                        : "text-black hover:bg-gray-50"
+                    } transition-all`}
+                    variant="outline"
+                  >
+                    {SUIT_SYMBOLS[suit]}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <p className="text-sm capitalize">{suit} - trump suit</p>
+                </PopoverContent>
+              </Popover>
             ))}
           </div>
         </div>

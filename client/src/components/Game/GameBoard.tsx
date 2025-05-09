@@ -10,10 +10,14 @@ import { CardExchange } from "./CardExchange";
 import { useAudio } from "../../lib/stores/useAudio";
 import { useGame } from "../../context/GameContext";
 import { useIsMobile } from "../../hooks/use-is-mobile";
+import { Volume2, VolumeX } from "lucide-react";
+import { DarkModeToggle } from "../ui/dark-mode-toggle";
+import { RulesDialog } from "./RulesDialog";
+import Confetti from 'react-confetti';
 
 export const GameBoard: FC = () => {
   const { state } = useGame();
-  const { setBackgroundMusic, setHitSound, setSuccessSound } = useAudio();
+  const { setBackgroundMusic, setHitSound, setSuccessSound, isMuted, toggleMute } = useAudio();
   const isMobile = useIsMobile();
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
@@ -78,70 +82,67 @@ export const GameBoard: FC = () => {
     : `mt-2 md:mt-4 ${isCompactLayout ? 'pb-2' : ''}`;
 
   return (
-    <div className="game-board h-screen flex flex-col bg-gradient-to-b from-gray-100 to-gray-200 p-2 md:p-4 overflow-hidden">
-      {/* Game info and message */}
-      <GameInfo className="mb-2 md:mb-4" />
-      
-      {/* Main game area */}
-      <div className={`flex flex-1 ${isCompactLayout ? 'flex-col-reverse' : 'flex-row'} gap-2 md:gap-4 relative overflow-hidden`}>
-        {/* Left sidebar - changes to top bar in compact layout */}
-        <div className={`
-          ${isCompactLayout ? 'w-full h-auto' : isVeryNarrow ? 'w-48' : 'w-64'} 
-          flex ${isCompactLayout ? 'flex-row justify-around' : 'flex-col'} 
-          gap-2 md:gap-4 relative
-        `}>
-          <ScoreBoard className={`flex-none ${isCompactLayout ? 'w-[48%]' : 'w-full'}`} />
-          
-          {/* Trick Summary - Always visible */}
-          <TrickSummary className={`flex-none ${isCompactLayout ? 'w-[48%]' : 'w-full'}`} />
-        </div>
-        
-        {/* Central game area */}
-        <div className="flex-1 relative bg-green-50 rounded-lg shadow-inner overflow-hidden min-h-[200px]">
-          {/* Card exchange UI during that phase */}
-          {state.currentPhase === "card_exchange" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 z-10">
-              <CardExchange />
-            </div>
-          )}
-          
-          {/* AI Players with responsive positioning */}
-          <AIPlayer 
-            playerId="bot1" 
-            position="left"
-            className={isCompactLayout ? "scale-75 origin-bottom-left" : ""}
-          />
-          <AIPlayer 
-            playerId="bot2" 
-            position="top" 
-            className={isCompactLayout ? "scale-75 origin-top" : ""}
-          />
-          <AIPlayer 
-            playerId="bot3" 
-            position="right"
-            className={isCompactLayout ? "scale-75 origin-bottom-right" : ""}
-          />
-          
-          {/* Play area with padding for AI players */}
-          <PlayArea className="absolute inset-4 md:inset-8" />
-        </div>
-      </div>
-      
-      {/* Game controls - Floating position that doesn't overlap with cards */}
-      {shouldShowControls(state.currentPhase) && (
-        <GameControls 
-          className={`
-            ${state.currentPhase === "half_quote_decision" 
-              ? 'absolute top-1/4 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50' 
-              : 'absolute bottom-[calc(15%+85px)] right-4 z-50'}
-            max-w-sm shadow-xl
-            ${state.currentPhase === "half_quote_decision" ? 'bg-amber-50 border-2 border-amber-200' : ''}
-          `} 
+    <div className="game-board h-screen grid grid-rows-[auto,1fr,auto] grid-cols-1 md:grid-cols-[200px,1fr] lg:grid-cols-[200px,1fr,200px] gap-2 md:gap-4 bg-gradient-to-b from-gray-100 to-gray-200 p-2 md:p-4 overflow-hidden">
+      {/* Celebrate round end with confetti */}
+      {state.currentPhase === 'round_end' && (
+        <Confetti
+          width={windowWidth}
+          height={windowHeight}
+          recycle={false}
+          numberOfPieces={300}
         />
       )}
-      
-      {/* Player's hand - Ensure it's visible during Half Quote decision */}
-      <PlayerHand className={playerHandClasses} />
+
+      {/* Header with audio toggle */}
+      <header className="row-start-1 col-span-full flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          <GameInfo className="w-full md:w-auto" />
+          <DarkModeToggle />
+          <RulesDialog />
+        </div>
+        <button
+          onClick={toggleMute}
+          aria-label={isMuted ? "Unmute audio" : "Mute audio"}
+          className="ml-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+        >
+          {isMuted ? <VolumeX className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                   : <Volume2 className="h-6 w-6 text-gray-600 dark:text-gray-300" />}
+        </button>
+      </header>
+
+      {/* Sidebar with score and tricks */}
+      <aside className="row-start-2 col-start-1 flex flex-col gap-2">
+        <ScoreBoard className="w-full" />
+        <TrickSummary className="w-full" />
+      </aside>
+
+      {/* Main play area */}
+      <main className="row-start-2 col-start-2 relative bg-green-50 rounded-lg shadow-inner overflow-hidden flex items-center justify-center">
+        {state.currentPhase === "card_exchange" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 z-10">
+            <CardExchange />
+          </div>
+        )}
+        <PlayArea className="w-full h-full p-4" />
+        <AIPlayer playerId="bot1" position="left" className="absolute left-2 top-1/2 -translate-y-1/2" />
+        <AIPlayer playerId="bot2" position="top" className="absolute top-2 left-1/2 -translate-x-1/2" />
+        <AIPlayer playerId="bot3" position="right" className="absolute right-2 top-1/2 -translate-y-1/2" />
+      </main>
+
+      {/* Controls section for large screens */}
+      <section className="hidden lg:block row-start-2 col-start-3 relative">
+        {shouldShowControls(state.currentPhase) && (
+          <GameControls className="sticky top-4 p-2 bg-white bg-opacity-80 rounded-lg shadow-md" />
+        )}
+      </section>
+
+      {/* Footer with controls and player hand for mobile/small */}
+      <footer className="row-start-3 col-span-full flex flex-col md:flex-row items-center justify-between gap-2">
+        {shouldShowControls(state.currentPhase) && (
+          <GameControls className="w-full md:w-auto p-2 bg-white bg-opacity-80 rounded-lg shadow-md" />
+        )}
+        <PlayerHand className="w-full md:w-auto" />
+      </footer>
     </div>
   );
 };
