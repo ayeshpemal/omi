@@ -1,16 +1,22 @@
-import { FC } from 'react';
+import { FC, ReactNode } from 'react';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '../ui/dialog';
 import { HelpCircle } from 'lucide-react';
 
-export const RulesDialog: FC = () => (
+interface RulesDialogProps {
+  children?: ReactNode;
+}
+
+export const RulesDialog: FC<RulesDialogProps> = ({ children }) => (
   <Dialog>
     <DialogTrigger asChild>
-      <button
-        aria-label="Show game rules"
-        className="ml-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-      >
-        <HelpCircle className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-      </button>
+      {children || (
+        <button
+          aria-label="Show game rules"
+          className="ml-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+        >
+          <HelpCircle className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+        </button>
+      )}
     </DialogTrigger>
     <DialogContent>
       <DialogHeader>

@@ -11,6 +11,7 @@ import { useAudio } from "../../lib/stores/useAudio";
 import { useGame } from "../../context/GameContext";
 import { useIsMobile } from "../../hooks/use-is-mobile";
 import { Volume2, VolumeX, HelpCircle } from "lucide-react";
+import { Button } from "../ui/button";
 import { DarkModeToggle } from "../ui/dark-mode-toggle";
 import { RulesDialog } from "./RulesDialog";
 import Confetti from 'react-confetti';
@@ -300,6 +301,3 @@ export const GameBoard: FC = () => {
     </div>
   );
 };
-
-// Import Button component to ensure it's available for the RulesDialog usage
-import { Button } from "../ui/button";
