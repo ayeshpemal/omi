@@ -101,8 +101,9 @@ export function dealInitialCards(state: GameState): GameState {
     }
   }
   
-  newState.currentPhase = "half_quote_decision";
-  newState.message = "Half Quote phase: Decide if you want to declare Half Quote";
+  // After initial 4 cards, move to Trump Declaration phase
+  newState.currentPhase = "trump_declaration";
+  newState.message = "Trump Declaration phase: Select a trump suit";
   
   return newState;
 }
@@ -202,29 +203,19 @@ export function passHalfQuote(state: GameState, playerId: PlayerId): GameState {
  * Processes a player declaring a trump suit
  */
 export function declareTrump(state: GameState, playerId: PlayerId, suit: Suit): GameState {
-  const newState = { ...state };
+  // Set trump and then deal remaining cards
+  const tempState = { ...state, trump: suit, trumpDecider: playerId };
+  let newState = dealRemainingCards(tempState);
   
-  // Set trump details
-  newState.trump = suit;
-  newState.trumpDecider = playerId;
-  
-  // Move to full quote decision phase
-  newState.currentPhase = "full_quote_decision";
-  
-  // The trump deciding team can't declare Full Quote
+  // Determine first full quote decider from the non-trump team
   const trumpTeam = newState.players[playerId].team;
-  
-  // Find the first player from the non-trump team
   const otherTeam = trumpTeam === "team1" ? "team2" : "team1";
-  const firstOtherTeamPlayerIndex = newState.playerOrder.findIndex(
+  const firstIndex = newState.playerOrder.findIndex(
     pId => newState.players[pId].team === otherTeam
   );
-  
-  newState.currentPlayerIndex = firstOtherTeamPlayerIndex;
-  const currentPlayer = newState.players[newState.playerOrder[firstOtherTeamPlayerIndex]];
-  
+  newState.currentPlayerIndex = firstIndex;
+  const currentPlayer = newState.players[newState.playerOrder[firstIndex]];
   newState.message = `Trump suit is ${suit}! ${currentPlayer.name}'s turn to decide on Full Quote`;
-  
   return newState;
 }
 
