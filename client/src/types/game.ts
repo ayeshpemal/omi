@@ -10,6 +10,12 @@ export interface Card {
 
 export type PlayerId = "player" | "bot1" | "bot2" | "bot3";
 
+export interface GameSettings {
+  botCanInitiateHalfQuote: boolean;
+  botCanInitiateFullQuote: boolean;
+  gameStarted: boolean;
+}
+
 export interface Player {
   id: PlayerId;
   name: string;
@@ -37,6 +43,7 @@ export interface Trick {
 }
 
 export interface GameState {
+  settings: GameSettings;
   players: Record<PlayerId, Player>;
   playerOrder: PlayerId[]; // Current player order
   currentPlayerIndex: number;
@@ -79,4 +86,6 @@ export type GameAction =
   | { type: "PLAY_CARD", playerId: PlayerId, card: Card }
   | { type: "COMPLETE_TRICK" }
   | { type: "END_ROUND" }
-  | { type: "START_NEW_ROUND" };
+  | { type: "START_NEW_ROUND" }
+  | { type: "UPDATE_SETTINGS", settings: Partial<GameSettings> }
+  | { type: "START_GAME" };

@@ -49,6 +49,11 @@ export function initializeGameState(): GameState {
 
   // Initial game state
   return {
+    settings: {
+      botCanInitiateHalfQuote: true,
+      botCanInitiateFullQuote: true,
+      gameStarted: false
+    },
     players,
     playerOrder: ["player", "bot1", "bot2", "bot3"],
     currentPlayerIndex: 0,
@@ -742,6 +747,24 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       
     case "START_NEW_ROUND":
       return startNewRound(state);
+      
+    case "UPDATE_SETTINGS":
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          ...action.settings
+        }
+      };
+      
+    case "START_GAME":
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          gameStarted: true
+        }
+      };
       
     default:
       return state;

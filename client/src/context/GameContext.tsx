@@ -20,7 +20,9 @@ interface GameContextType {
   exchangeCards: () => void;
   playCard: (card: Card) => void;
   startNewRound: () => void;
+  startGame: () => void;
   isAiThinking: boolean;
+  updateSettings: (settings: { botCanInitiateHalfQuote?: boolean; botCanInitiateFullQuote?: boolean }) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -112,8 +114,24 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: "START_NEW_ROUND" });
   };
   
+  const startGame = () => {
+    playHit();
+    dispatch({ type: "UPDATE_SETTINGS", settings: { gameStarted: true } });
+    dispatch({ type: "DEAL_INITIAL_CARDS" });
+  };
+  
+  const updateSettings = (settings: { botCanInitiateHalfQuote?: boolean; botCanInitiateFullQuote?: boolean }) => {
+    playHit();
+    dispatch({ type: "UPDATE_SETTINGS", settings });
+  };
+  
   // AI logic
   useEffect(() => {
+    // Skip AI logic if game hasn't started
+    if (!state.settings.gameStarted) {
+      return;
+    }
+    
     // Handle AI turns
     const currentPlayerId = state.playerOrder[state.currentPlayerIndex];
     
@@ -124,7 +142,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Handle different phases
         switch (state.currentPhase) {
           case "half_quote_decision":
-            if (shouldDeclareHalfQuote(state, currentPlayerId)) {
+            // Check if bot is allowed to initiate half quote
+            if (state.settings.botCanInitiateHalfQuote && shouldDeclareHalfQuote(state, currentPlayerId)) {
               dispatch({ type: "DECLARE_HALF_QUOTE", playerId: currentPlayerId });
               playSuccess();
             } else {
@@ -143,7 +162,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ? state.players[currentPlayerId].team !== state.players[state.trumpDecider].team
               : true;
               
-            if (canDeclareFullQuote && shouldDeclareFullQuote(state, currentPlayerId)) {
+            // Check if bot is allowed to initiate full quote
+            if (canDeclareFullQuote && state.settings.botCanInitiateFullQuote && shouldDeclareFullQuote(state, currentPlayerId)) {
               dispatch({ type: "DECLARE_FULL_QUOTE", playerId: currentPlayerId });
               playSuccess();
             } else {
@@ -189,7 +209,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return () => clearTimeout(aiAction);
     }
-  }, [state.currentPhase, state.currentPlayerIndex, state.playerOrder]);
+  }, [state.currentPhase, state.currentPlayerIndex, state.playerOrder, state.settings.gameStarted, state.settings.botCanInitiateHalfQuote, state.settings.botCanInitiateFullQuote]);
   
   // Handle trick result phase with delay
   useEffect(() => {
@@ -202,11 +222,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return () => clearTimeout(trickResultTimer);
     }
   }, [state.currentPhase, dispatch, playSuccess]);
-  
-  // Start a new game by dealing cards when mounted
-  useEffect(() => {
-    dispatch({ type: "DEAL_INITIAL_CARDS" });
-  }, []);
   
   const contextValue: GameContextType = {
     state,
@@ -223,7 +238,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     exchangeCards,
     playCard,
     startNewRound,
-    isAiThinking
+    startGame,
+    isAiThinking,
+    updateSettings
   };
   
   return (

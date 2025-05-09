@@ -17,6 +17,7 @@ import { RulesDialog } from "./RulesDialog";
 import Confetti from 'react-confetti';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { motion, AnimatePresence } from "framer-motion";
+import { HomePage } from "./HomePage";
 
 export const GameBoard: FC = () => {
   const { state, isPlayerTurn, isAiThinking } = useGame();
@@ -59,6 +60,11 @@ export const GameBoard: FC = () => {
       successSound.pause();
     };
   }, []);
+
+  // If the game hasn't started, show the home page
+  if (!state.settings.gameStarted) {
+    return <HomePage />;
+  }
 
   // Determine layout based on screen size
   const isCompactLayout = isMobile || windowHeight < 700 || windowWidth < 900;
