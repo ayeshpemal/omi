@@ -128,8 +128,11 @@ export function selectCardToPlay(state: GameState, botId: PlayerId): Card {
     return selectFollowSuitCard(state, botId, trick.leadSuit);
   }
   
-  // Can't follow suit, check if we should play trump
-  if (state.trump && getCardsOfSuit(hand, state.trump).length > 0) {
+  // Check if we're in quote mode (full or half)
+  const isQuoteMode = state.quoteType === "half" || state.quoteType === "full";
+  
+  // Can't follow suit, check if we should play trump (only in non-quote mode)
+  if (!isQuoteMode && state.trump && getCardsOfSuit(hand, state.trump).length > 0) {
     return selectTrumpCard(state, botId);
   }
   

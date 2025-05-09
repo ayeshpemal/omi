@@ -402,8 +402,11 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     for (let i = 1; i < trick.cards.length; i++) {
       const card = trick.cards[i];
       
-      // If trump is played and winning card is not trump, trump wins
-      if (newState.trump && card.card.suit === newState.trump && 
+      // Check if we're in quote mode (full or half)
+      const isQuoteMode = newState.quoteType === "half" || newState.quoteType === "full";
+      
+      // If trump is played and winning card is not trump, trump wins (only if not in quote mode)
+      if (!isQuoteMode && newState.trump && card.card.suit === newState.trump && 
           (winningCard.card.suit !== newState.trump)) {
         winningCard = card;
       }
@@ -412,10 +415,10 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
                card.card.value > winningCard.card.value) {
         winningCard = card;
       }
-      // If lead suit and winning card is not lead suit or trump
+      // If lead suit and winning card is not lead suit (and not trump when not in quote mode)
       else if (card.card.suit === trick.leadSuit && 
               winningCard.card.suit !== trick.leadSuit && 
-              (newState.trump === null || winningCard.card.suit !== newState.trump)) {
+              (isQuoteMode || newState.trump === null || winningCard.card.suit !== newState.trump)) {
         winningCard = card;
       }
     }
@@ -447,14 +450,17 @@ export function completeTrick(state: GameState): GameState {
     throw new Error("Lead suit not set for trick");
   }
   
+  // Check if we're in quote mode (full or half)
+  const isQuoteMode = newState.quoteType === "half" || newState.quoteType === "full";
+  
   // Find winning card
   let winningCard = trick.cards[0];
   
   for (let i = 1; i < trick.cards.length; i++) {
     const card = trick.cards[i];
     
-    // If trump is played and winning card is not trump, trump wins
-    if (newState.trump && card.card.suit === newState.trump && 
+    // If trump is played and winning card is not trump, trump wins (only if not in quote mode)
+    if (!isQuoteMode && newState.trump && card.card.suit === newState.trump && 
         (winningCard.card.suit !== newState.trump)) {
       winningCard = card;
     }
@@ -463,10 +469,10 @@ export function completeTrick(state: GameState): GameState {
              card.card.value > winningCard.card.value) {
       winningCard = card;
     }
-    // If lead suit and winning card is not lead suit or trump
+    // If lead suit and winning card is not lead suit (and not trump when not in quote mode)
     else if (card.card.suit === trick.leadSuit && 
             winningCard.card.suit !== trick.leadSuit && 
-            (newState.trump === null || winningCard.card.suit !== newState.trump)) {
+            (isQuoteMode || newState.trump === null || winningCard.card.suit !== newState.trump)) {
       winningCard = card;
     }
   }
