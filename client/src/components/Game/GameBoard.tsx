@@ -108,7 +108,7 @@ export const GameBoard: FC = () => {
           {/* AI Players with responsive positioning */}
           <AIPlayer 
             playerId="bot1" 
-            position={isCompactLayout ? "bottom-left" : "left"} 
+            position="left"
             className={isCompactLayout ? "scale-75 origin-bottom-left" : ""}
           />
           <AIPlayer 
@@ -118,7 +118,7 @@ export const GameBoard: FC = () => {
           />
           <AIPlayer 
             playerId="bot3" 
-            position={isCompactLayout ? "bottom-right" : "right"} 
+            position="right"
             className={isCompactLayout ? "scale-75 origin-bottom-right" : ""}
           />
           

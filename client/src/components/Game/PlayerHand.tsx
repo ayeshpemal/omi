@@ -107,18 +107,19 @@ export const PlayerHand: FC<PlayerHandProps> = ({ className }) => {
         )}
       </div>
       
-      <CardList
-        cards={playerHand}
-        selectedCards={selectedCards}
-        onCardClick={handleCardClick}
-        playableCards={playableCards}
-        size={cardSize}
-        fanned={true}
-        overlap={cardOverlap}
-        maxWidth={isMobile ? undefined : 800} // Let it auto-calculate on mobile
-        className="transition-all duration-300"
-        style={cardListStyles}
-      />
+      <div style={cardListStyles}>
+        <CardList
+          cards={playerHand}
+          selectedCards={selectedCards}
+          onCardClick={handleCardClick}
+          playableCards={playableCards}
+          size={cardSize}
+          fanned={true}
+          overlap={cardOverlap}
+          maxWidth={isMobile ? undefined : 800} // Let it auto-calculate on mobile
+          className="transition-all duration-300"
+        />
+      </div>
       
       {/* Contextual help text */}
       {state.currentPhase === "trick_play" && isPlayerTurn && playableCards.length > 0 && (
