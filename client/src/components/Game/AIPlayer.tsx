@@ -58,7 +58,7 @@ export const AIPlayer: FC<AIPlayerProps> = ({
                 key={i}
                 card={{ id: `dummy-${i}`, suit: "hearts", rank: "A", value: 14 }}
                 faceDown={true}
-                size="small"
+                size="xs"
               />
             ))}
           </div>
@@ -69,7 +69,7 @@ export const AIPlayer: FC<AIPlayerProps> = ({
                 key={i}
                 card={{ id: `dummy-${i}`, suit: "hearts", rank: "A", value: 14 }}
                 faceDown={true}
-                size="small"
+                size="xs"
               />
             ))}
           </div>

@@ -3,7 +3,6 @@ import { useGame } from "@/lib/stores/useGame";
 import { useAudio } from "@/lib/stores/useAudio";
 import { Button } from "./button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./card";
-import { Confetti } from "../game/Confetti";
 import { VolumeX, Volume2, RotateCw, Trophy } from "lucide-react";
 
 export function Interface() {
@@ -15,7 +14,11 @@ export function Interface() {
   useEffect(() => {
     if (phase === "ready") {
       const handleClick = () => {
-        document.activeElement?.blur(); // Remove focus from any button
+        // Fix the blur method issue by checking if the element is an HTMLElement
+        const activeElement = document.activeElement;
+        if (activeElement && 'blur' in activeElement) {
+          (activeElement as HTMLElement).blur();
+        }
         const event = new KeyboardEvent("keydown", { code: "Space" });
         window.dispatchEvent(event);
       };
@@ -27,7 +30,7 @@ export function Interface() {
 
   return (
     <>
-      <Confetti />
+      {/* Removing the Confetti component since it doesn't exist */}
       
       {/* Top-right corner UI controls */}
       <div className="fixed top-4 right-4 flex gap-2 z-10">
