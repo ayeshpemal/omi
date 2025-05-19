@@ -4,6 +4,7 @@ import { CARD_HEIGHT, CARD_WIDTH, SUIT_COLORS, SUIT_SYMBOLS, MOBILE_BREAKPOINT }
 import { useGame } from "../../context/GameContext";
 import { useAudio } from "../../lib/stores/useAudio";
 import { useIsMobile } from "../../hooks/use-is-mobile";
+import { motion } from "framer-motion";
 
 interface CardProps {
   card: CardType;
@@ -11,7 +12,7 @@ interface CardProps {
   isPlayable?: boolean;
   onClick?: () => void;
   faceDown?: boolean;
-  size?: "small" | "normal" | "large";
+  size?: "xs" | "sm" | "md" | "lg";
   className?: string;
   style?: CSSProperties;
 }
@@ -22,7 +23,7 @@ export const Card: FC<CardProps> = ({
   isPlayable = false,
   onClick,
   faceDown = false,
-  size = "normal",
+  size = "md",
   className = "",
   style = {},
 }) => {
@@ -32,16 +33,17 @@ export const Card: FC<CardProps> = ({
   
   // Size multipliers - adjust further down for mobile
   const sizes = {
-    small: isMobile ? 0.6 : 0.7,
-    normal: isMobile ? 0.85 : 1,
-    large: isMobile ? 1.0 : 1.2,
+    xs: isMobile ? 0.5 : 0.6,
+    sm: isMobile ? 0.65 : 0.75,
+    md: isMobile ? 0.8 : 0.9,
+    lg: isMobile ? 0.95 : 1.1,
   };
   
   const width = CARD_WIDTH * sizes[size];
   const height = CARD_HEIGHT * sizes[size];
   
   const handleClick = () => {
-    if (onClick && isPlayable) {
+    if (onClick) {
       playHit();
       onClick();
     }
@@ -52,36 +54,29 @@ export const Card: FC<CardProps> = ({
     width: `${width}px`,
     height: `${height}px`,
     borderRadius: "8px",
-    position: "relative",
     backgroundColor: "white",
-    boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
-    border: isSelected ? "2px solid blue" : "1px solid #ddd",
-    overflow: "hidden",
-    transition: "transform 0.2s, box-shadow 0.2s",
-    transform: isHovering && isPlayable ? "translateY(-10px)" : (isSelected ? "translateY(-5px)" : "none"),
-    cursor: isPlayable ? "pointer" : "default",
-    opacity: isPlayable ? 1 : 0.8,
+    cursor: onClick ? "pointer" : "default",
     ...style,
   };
   
   // If the card is face down, render the back
   if (faceDown) {
     return (
-      <div 
+      <motion.div 
         style={cardStyle}
-        className={`${className} card-back`}
+        className={`${className} card-back relative shadow-md`}
         onClick={handleClick}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
+        whileHover={{ y: onClick ? -5 : 0, boxShadow: "0 5px 15px rgba(0,0,0,0.2)" }}
+        transition={{ type: "spring", stiffness: 300, damping: 15 }}
       >
-        <div style={{
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          width: "100%",
-          height: "100%",
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpattern id='pattern' x='0' y='0' width='10' height='10' patternUnits='userSpaceOnUse'%3E%3Crect fill='%233498db' width='5' height='5' x='0' y='0'/%3E%3Crect fill='%232c3e50' width='5' height='5' x='5' y='5'/%3E%3C/pattern%3E%3Crect fill='%23243342' width='40' height='40'/%3E%3Crect fill='url(%23pattern)' width='40' height='40'/%3E%3C/svg%3E")`,
-        }} />
-      </div>
+        <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-blue-500 to-blue-800 p-[2px]">
+          <div className="absolute inset-0 rounded-lg bg-gray-900 flex items-center justify-center">
+            <div className="text-lg font-bold text-blue-400">OMI</div>
+          </div>
+        </div>
+      </motion.div>
     );
   }
   
@@ -90,65 +85,85 @@ export const Card: FC<CardProps> = ({
   const color = SUIT_COLORS[suit];
   const symbol = SUIT_SYMBOLS[suit];
   
+  // Card highlight styling for playable cards
+  const getCardHighlight = () => {
+    if (isSelected) return "ring-2 ring-blue-500 dark:ring-blue-400";
+    if (isPlayable) return "hover:ring-2 hover:ring-green-400 dark:hover:ring-green-400";
+    return "";
+  };
+  
   return (
-    <div 
+    <motion.div 
       style={cardStyle}
-      className={`${className} card-front`}
+      className={`card-front bg-white dark:bg-gray-100 relative ${getCardHighlight()} shadow-md ${className}`}
       onClick={handleClick}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
+      whileHover={isPlayable || onClick ? { 
+        y: -8, 
+        boxShadow: "0 6px 16px rgba(0,0,0,0.2)",
+        transition: { type: "spring", stiffness: 300, damping: 15 }
+      } : {}}
+      animate={isSelected ? {
+        y: -5,
+        boxShadow: "0 4px 12px rgba(37, 99, 235, 0.5)",
+      } : {}}
     >
+      {/* Playable indicator */}
+      {isPlayable && (
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border border-white z-10 animate-pulse"></div>
+      )}
+      
+      {/* Selected indicator */}
+      {isSelected && (
+        <div className="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 rounded-full border border-white z-10"></div>
+      )}
+      
       {/* Top left corner */}
-      <div style={{ position: "absolute", top: "5px", left: "5px", fontSize: `${width * 0.15}px`, color }}>
-        <div>{rank}</div>
-        <div style={{ fontSize: `${width * 0.16}px` }}>{symbol}</div>
+      <div className="absolute top-1 left-1 flex flex-col items-center" style={{ color }}>
+        <div style={{ fontSize: `${width * 0.16}px`, lineHeight: 1, fontWeight: "bold" }}>{rank}</div>
+        <div style={{ fontSize: `${width * 0.16}px`, lineHeight: 1 }}>{symbol}</div>
       </div>
       
       {/* Bottom right corner */}
-      <div style={{ position: "absolute", bottom: "5px", right: "5px", fontSize: `${width * 0.15}px`, color, transform: "rotate(180deg)" }}>
-        <div>{rank}</div>
-        <div style={{ fontSize: `${width * 0.16}px` }}>{symbol}</div>
+      <div className="absolute bottom-1 right-1 flex flex-col items-center transform rotate-180" style={{ color }}>
+        <div style={{ fontSize: `${width * 0.16}px`, lineHeight: 1, fontWeight: "bold" }}>{rank}</div>
+        <div style={{ fontSize: `${width * 0.16}px`, lineHeight: 1 }}>{symbol}</div>
       </div>
       
       {/* Center symbol */}
-      <div style={{ 
-        position: "absolute", 
-        top: "50%", 
-        left: "50%", 
-        transform: "translate(-50%, -50%)",
-        fontSize: `${width * 0.3}px`,
-        color,
-      }}>
-        {symbol}
+      <div className="absolute inset-0 flex items-center justify-center" style={{ color }}>
+        <div style={{ fontSize: `${width * 0.35}px`, lineHeight: 1 }}>{symbol}</div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
 // CardPlaceholder component for empty spots
 export const CardPlaceholder: FC<{
-  size?: "small" | "normal" | "large";
+  size?: "xs" | "sm" | "md" | "lg";
   className?: string;
-}> = ({ size = "normal", className = "" }) => {
+}> = ({ size = "md", className = "" }) => {
   const isMobile = useIsMobile();
   
   const sizes = {
-    small: isMobile ? 0.6 : 0.7,
-    normal: isMobile ? 0.85 : 1,
-    large: isMobile ? 1.0 : 1.2,
+    xs: isMobile ? 0.5 : 0.6,
+    sm: isMobile ? 0.65 : 0.75,
+    md: isMobile ? 0.8 : 0.9,
+    lg: isMobile ? 0.95 : 1.1,
   };
   
   const width = CARD_WIDTH * sizes[size];
   const height = CARD_HEIGHT * sizes[size];
   
   return (
-    <div style={{
-      width: `${width}px`,
-      height: `${height}px`,
-      borderRadius: "8px",
-      border: "1px dashed #aaa",
-      backgroundColor: "rgba(0,0,0,0.05)",
-    }} className={className} />
+    <div 
+      style={{
+        width: `${width}px`,
+        height: `${height}px`,
+      }} 
+      className={`rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-800/30 ${className}`} 
+    />
   );
 };
 
@@ -157,55 +172,62 @@ export const CardList: FC<{
   cards: CardType[];
   selectedCards?: CardType[];
   onCardClick?: (card: CardType) => void;
-  playableCards?: CardType[];
-  size?: "small" | "normal" | "large";
+  playableCards?: string[];
+  size?: "xs" | "sm" | "md" | "lg";
   fanned?: boolean;
   overlap?: number;
   maxWidth?: number;
   className?: string;
+  highlightPlayable?: boolean;
 }> = ({
   cards,
   selectedCards = [],
   onCardClick,
   playableCards = [],
-  size = "normal",
+  size = "md",
   fanned = true,
-  overlap = 30,
+  overlap = 0.5, // This is now a percentage of card width
   maxWidth,
   className = "",
+  highlightPlayable = false,
 }) => {
   const { state } = useGame();
   const isMobile = useIsMobile();
   
-  const isPlayable = (card: CardType) => {
-    if (!playableCards.length) return true;
-    return playableCards.some(pc => pc.id === card.id);
+  const isCardPlayable = (card: CardType) => {
+    if (!playableCards.length || !highlightPlayable) return false;
+    return playableCards.includes(card.id);
   };
   
-  const isSelected = (card: CardType) => {
+  const isCardSelected = (card: CardType) => {
     return selectedCards.some(sc => sc.id === card.id);
   };
   
   // Size multipliers - adjust for mobile
   const sizes = {
-    small: isMobile ? 0.6 : 0.7,
-    normal: isMobile ? 0.85 : 1,
-    large: isMobile ? 1.0 : 1.2,
+    xs: isMobile ? 0.5 : 0.6,
+    sm: isMobile ? 0.65 : 0.75,
+    md: isMobile ? 0.8 : 0.9,
+    lg: isMobile ? 0.95 : 1.1,
   };
   
-  // Calculate fan width with responsive sizing
+  // Calculate card width and position
   const cardWidth = CARD_WIDTH * sizes[size];
-  const mobileOverlap = isMobile ? Math.max(15, overlap * 0.7) : overlap;
-  const totalWidth = fanned ? cardWidth + (cards.length - 1) * mobileOverlap : cardWidth;
+  
+  // Calculate overlap pixels based on percentage of card width
+  const overlapPixels = cardWidth * overlap;
+  
+  // Calculate total width
+  const calculatedWidth = fanned ? cardWidth + (cards.length - 1) * overlapPixels : cardWidth;
   
   // Adjust overlap if maxWidth is provided and we exceed it
-  let adjustedOverlap = mobileOverlap;
+  let adjustedOverlap = overlapPixels;
   
   // Default maxWidth for mobile if not provided
-  const autoMaxWidth = !maxWidth && isMobile ? 320 : maxWidth;
+  const effectiveMaxWidth = maxWidth || (isMobile ? window.innerWidth - 40 : 750);
   
-  if (autoMaxWidth && totalWidth > autoMaxWidth) {
-    adjustedOverlap = Math.max(10, (autoMaxWidth - cardWidth) / Math.max(1, cards.length - 1));
+  if (calculatedWidth > effectiveMaxWidth) {
+    adjustedOverlap = Math.max(10, (effectiveMaxWidth - cardWidth) / Math.max(1, cards.length - 1));
   }
   
   return (
@@ -213,10 +235,12 @@ export const CardList: FC<{
       style={{ 
         display: "flex", 
         justifyContent: "center",
-        width: maxWidth ? `${maxWidth}px` : "100%",
+        width: "100%",
         margin: "0 auto",
         position: "relative",
         height: `${CARD_HEIGHT * sizes[size] + 15}px`,
+        paddingLeft: cardWidth / 2,
+        paddingRight: cardWidth / 2
       }}
       className={className}
     >
@@ -225,13 +249,15 @@ export const CardList: FC<{
           key={card.id}
           card={card}
           size={size}
-          isSelected={isSelected(card)}
-          isPlayable={isPlayable(card)}
+          isSelected={isCardSelected(card)}
+          isPlayable={isCardPlayable(card)}
           onClick={() => onCardClick && onCardClick(card)}
           style={{
             position: "absolute",
-            left: fanned ? `${index * adjustedOverlap}px` : "0",
+            left: fanned ? `calc(50% - ${cardWidth/2}px + ${index * adjustedOverlap - ((cards.length-1) * adjustedOverlap)/2}px)` : "50%",
+            transform: fanned ? "none" : "translateX(-50%)",
             zIndex: index,
+            transition: "all 0.3s ease",
           }}
         />
       ))}

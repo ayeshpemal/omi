@@ -49,6 +49,11 @@ export function initializeGameState(): GameState {
 
   // Initial game state
   return {
+    settings: {
+      botCanInitiateHalfQuote: true,
+      botCanInitiateFullQuote: true,
+      gameStarted: false
+    },
     players,
     playerOrder: ["player", "bot1", "bot2", "bot3"],
     currentPlayerIndex: 0,
@@ -78,6 +83,11 @@ export function initializeGameState(): GameState {
       bot3: [],
     },
     message: "Game starting... Dealing cards",
+    trickSummary: {
+      team1Tricks: 0,
+      team2Tricks: 0,
+      tricksRequired: TOTAL_TRICKS_PER_ROUND
+    }
   };
 }
 
@@ -96,8 +106,9 @@ export function dealInitialCards(state: GameState): GameState {
     }
   }
   
-  newState.currentPhase = "half_quote_decision";
-  newState.message = "Half Quote phase: Decide if you want to declare Half Quote";
+  // After initial 4 cards, move to Trump Declaration phase
+  newState.currentPhase = "trump_declaration";
+  newState.message = "Trump Declaration phase: Select a trump suit";
   
   return newState;
 }
@@ -197,29 +208,19 @@ export function passHalfQuote(state: GameState, playerId: PlayerId): GameState {
  * Processes a player declaring a trump suit
  */
 export function declareTrump(state: GameState, playerId: PlayerId, suit: Suit): GameState {
-  const newState = { ...state };
+  // Set trump and then deal remaining cards
+  const tempState = { ...state, trump: suit, trumpDecider: playerId };
+  let newState = dealRemainingCards(tempState);
   
-  // Set trump details
-  newState.trump = suit;
-  newState.trumpDecider = playerId;
-  
-  // Move to full quote decision phase
-  newState.currentPhase = "full_quote_decision";
-  
-  // The trump deciding team can't declare Full Quote
+  // Determine first full quote decider from the non-trump team
   const trumpTeam = newState.players[playerId].team;
-  
-  // Find the first player from the non-trump team
   const otherTeam = trumpTeam === "team1" ? "team2" : "team1";
-  const firstOtherTeamPlayerIndex = newState.playerOrder.findIndex(
+  const firstIndex = newState.playerOrder.findIndex(
     pId => newState.players[pId].team === otherTeam
   );
-  
-  newState.currentPlayerIndex = firstOtherTeamPlayerIndex;
-  const currentPlayer = newState.players[newState.playerOrder[firstOtherTeamPlayerIndex]];
-  
+  newState.currentPlayerIndex = firstIndex;
+  const currentPlayer = newState.players[newState.playerOrder[firstIndex]];
   newState.message = `Trump suit is ${suit}! ${currentPlayer.name}'s turn to decide on Full Quote`;
-  
   return newState;
 }
 
@@ -257,24 +258,29 @@ export function declareFullQuote(state: GameState, playerId: PlayerId): GameStat
 export function passFullQuote(state: GameState, playerId: PlayerId): GameState {
   const newState = { ...state };
   
+  // Initialize the set of players who have passed if it doesn't exist
+  if (!newState.playersPassedFullQuote) {
+    newState.playersPassedFullQuote = new Set<PlayerId>();
+  }
+  
+  // Add the current player to the set of players who have passed
+  newState.playersPassedFullQuote.add(playerId);
+  
   const team = newState.players[playerId].team;
   
-  // Find all players on the same team who haven't had a turn yet
-  // Filter the player order starting from the current player to the end
-  const currentPlayerIdx = newState.playerOrder.indexOf(playerId);
-  const remainingPlayerOrder = [...newState.playerOrder.slice(currentPlayerIdx + 1), ...newState.playerOrder.slice(0, currentPlayerIdx)];
-  
-  // Find the next eligible player from the same team
-  const nextEligiblePlayer = remainingPlayerOrder.find(
-    pid => newState.players[pid].team === team
+  // Find all players on the same team who haven't passed yet
+  const eligibleTeammates = newState.playerOrder.filter(pid => 
+    newState.players[pid].team === team && 
+    pid !== playerId && 
+    !newState.playersPassedFullQuote?.has(pid)
   );
   
   // If there's another eligible player on the same team, move to them
-  if (nextEligiblePlayer) {
-    const nextPlayerIndex = newState.playerOrder.indexOf(nextEligiblePlayer);
+  if (eligibleTeammates.length > 0) {
+    const nextPlayerIndex = newState.playerOrder.indexOf(eligibleTeammates[0]);
     newState.currentPlayerIndex = nextPlayerIndex;
     
-    newState.message = `${newState.players[nextEligiblePlayer].name}'s turn to decide on Full Quote`;
+    newState.message = `${newState.players[eligibleTeammates[0]].name}'s turn to decide on Full Quote`;
     return newState;
   }
   
@@ -327,13 +333,27 @@ export function exchangeCards(
     // Move to trick play phase
     newState.currentPhase = "trick_play";
     
-    // The quote player goes first
+    // In full quote, only the player who declared the quote participates (not their teammate)
     if (newState.quotePlayer) {
+      // Find the teammate of the quote declarer
+      const quoteTeam = newState.players[newState.quotePlayer].team;
+      const teammateId = Object.values(newState.players).find(
+        p => p.id !== newState.quotePlayer && p.team === quoteTeam
+      )?.id;
+      
+      // Create a modified player order that skips the teammate
+      if (teammateId) {
+        newState.playerOrder = newState.playerOrder.filter(id => id !== teammateId);
+      }
+      
+      // The quote player goes first
       const quotePlayerIndex = newState.playerOrder.indexOf(newState.quotePlayer);
       newState.currentPlayerIndex = quotePlayerIndex;
+      
+      newState.message = `Card exchange complete. ${newState.players[newState.quotePlayer].name} will play alone for Full Quote!`;
+    } else {
+      newState.message = "Card exchange complete. Starting trick play!";
     }
-    
-    newState.message = "Card exchange complete. Starting trick play!";
   } else {
     // Determine which teammate needs to exchange now
     const otherTeammate = teamPlayers.find(pid => pid !== fromPlayer);
@@ -387,8 +407,11 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
     for (let i = 1; i < trick.cards.length; i++) {
       const card = trick.cards[i];
       
-      // If trump is played and winning card is not trump, trump wins
-      if (newState.trump && card.card.suit === newState.trump && 
+      // Check if we're in quote mode (full or half)
+      const isQuoteMode = newState.quoteType === "half" || newState.quoteType === "full";
+      
+      // If trump is played and winning card is not trump, trump wins (only if not in quote mode)
+      if (!isQuoteMode && newState.trump && card.card.suit === newState.trump && 
           (winningCard.card.suit !== newState.trump)) {
         winningCard = card;
       }
@@ -397,10 +420,10 @@ export function playCard(state: GameState, playerId: PlayerId, card: Card): Game
                card.card.value > winningCard.card.value) {
         winningCard = card;
       }
-      // If lead suit and winning card is not lead suit or trump
+      // If lead suit and winning card is not lead suit (and not trump when not in quote mode)
       else if (card.card.suit === trick.leadSuit && 
               winningCard.card.suit !== trick.leadSuit && 
-              (newState.trump === null || winningCard.card.suit !== newState.trump)) {
+              (isQuoteMode || newState.trump === null || winningCard.card.suit !== newState.trump)) {
         winningCard = card;
       }
     }
@@ -432,14 +455,17 @@ export function completeTrick(state: GameState): GameState {
     throw new Error("Lead suit not set for trick");
   }
   
+  // Check if we're in quote mode (full or half)
+  const isQuoteMode = newState.quoteType === "half" || newState.quoteType === "full";
+  
   // Find winning card
   let winningCard = trick.cards[0];
   
   for (let i = 1; i < trick.cards.length; i++) {
     const card = trick.cards[i];
     
-    // If trump is played and winning card is not trump, trump wins
-    if (newState.trump && card.card.suit === newState.trump && 
+    // If trump is played and winning card is not trump, trump wins (only if not in quote mode)
+    if (!isQuoteMode && newState.trump && card.card.suit === newState.trump && 
         (winningCard.card.suit !== newState.trump)) {
       winningCard = card;
     }
@@ -448,10 +474,10 @@ export function completeTrick(state: GameState): GameState {
              card.card.value > winningCard.card.value) {
       winningCard = card;
     }
-    // If lead suit and winning card is not lead suit or trump
+    // If lead suit and winning card is not lead suit (and not trump when not in quote mode)
     else if (card.card.suit === trick.leadSuit && 
             winningCard.card.suit !== trick.leadSuit && 
-            (newState.trump === null || winningCard.card.suit !== newState.trump)) {
+            (isQuoteMode || newState.trump === null || winningCard.card.suit !== newState.trump)) {
       winningCard = card;
     }
   }
@@ -468,6 +494,19 @@ export function completeTrick(state: GameState): GameState {
     leadSuit: null,
     winner: null,
   };
+  
+  // Update trick summary
+  const winnerTeam = newState.players[trick.winner].team;
+  if (winnerTeam === "team1") {
+    newState.trickSummary.team1Tricks += 1;
+  } else {
+    newState.trickSummary.team2Tricks += 1;
+  }
+  
+  // For half quote, we adjust the total tricks required
+  if (newState.quoteType === "half") {
+    newState.trickSummary.tricksRequired = 4;
+  }
   
   // Winner starts next trick
   const winnerIndex = newState.playerOrder.indexOf(winningCard.playerId);
@@ -487,14 +526,18 @@ export function completeTrick(state: GameState): GameState {
   
   const nextPlayer = newState.players[newState.playerOrder[winnerIndex]];
   const winnerName = newState.players[trick.winner].name;
+  const team1Name = "Your team";
+  const team2Name = "Opponent team";
   
-  // Update message based on who won and who plays next
+  // Update message based on who won and who plays next with trick summary
+  const summaryText = `[${team1Name}: ${newState.trickSummary.team1Tricks}, ${team2Name}: ${newState.trickSummary.team2Tricks}]`;
+  
   if (trick.winner === "player") {
-    newState.message = `You won the trick! Your turn to play next.`;
+    newState.message = `You won the trick! ${summaryText} Your turn to play next.`;
   } else if (newState.playerOrder[winnerIndex] === "player") {
-    newState.message = `${winnerName} won the trick! Your turn to play next.`;
+    newState.message = `${winnerName} won the trick! ${summaryText} Your turn to play next.`;
   } else {
-    newState.message = `${winnerName} won the trick! ${nextPlayer.name}'s turn to play next.`;
+    newState.message = `${winnerName} won the trick! ${summaryText} ${nextPlayer.name}'s turn to play next.`;
   }
   
   return newState;
@@ -617,9 +660,20 @@ export function startNewRound(state: GameState): GameState {
   newState.scores = { ...state.scores };
   newState.roundHistory = [...state.roundHistory];
   
-  // Make sure we're using the standard player order regardless of any changes in the previous round
+  // Standard player order
   newState.playerOrder = ["player", "bot1", "bot2", "bot3"];
-  newState.currentPlayerIndex = 0;
+  
+  // Rotate trump declaration for the next round
+  // If there was a trumpDecider last round, the next player gets to start this round
+  if (state.trumpDecider) {
+    const standardOrder = ["player", "bot1", "bot2", "bot3"];
+    const lastTrumpDeciderIndex = standardOrder.indexOf(state.trumpDecider);
+    if (lastTrumpDeciderIndex !== -1) {
+      // Find the next player index in the rotation
+      const nextPlayerIndex = (lastTrumpDeciderIndex + 1) % 4;
+      newState.currentPlayerIndex = nextPlayerIndex;
+    }
+  }
   
   // Reset phase-specific variables
   newState.trumpDecider = null;
@@ -628,6 +682,14 @@ export function startNewRound(state: GameState): GameState {
   newState.quotePlayer = null;
   newState.halfQuotePossible = true;
   newState.fullQuotePossible = true;
+  newState.playersPassedFullQuote = new Set<PlayerId>();
+  
+  // Reset trick summary for new round
+  newState.trickSummary = {
+    team1Tricks: 0,
+    team2Tricks: 0,
+    tricksRequired: TOTAL_TRICKS_PER_ROUND
+  };
   
   // Clear any exchanged cards from previous round
   newState.exchangedCards = {
@@ -637,8 +699,9 @@ export function startNewRound(state: GameState): GameState {
     bot3: [],
   };
   
-  // Set starting message
-  newState.message = "Starting new round... Dealing cards";
+  // Set starting message with information about the starting player
+  const firstPlayer = newState.players[newState.playerOrder[newState.currentPlayerIndex]];
+  newState.message = `Starting new round... ${firstPlayer.name} gets first chance for Half Quote and Trump selection.`;
   
   // Deal initial cards
   return dealInitialCards(newState);
@@ -684,6 +747,24 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       
     case "START_NEW_ROUND":
       return startNewRound(state);
+      
+    case "UPDATE_SETTINGS":
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          ...action.settings
+        }
+      };
+      
+    case "START_GAME":
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          gameStarted: true
+        }
+      };
       
     default:
       return state;

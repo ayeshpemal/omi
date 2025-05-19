@@ -28,13 +28,17 @@ export const useAudio = create<AudioState>((set, get) => ({
   setSuccessSound: (sound) => set({ successSound: sound }),
   
   toggleMute: () => {
-    const { isMuted } = get();
+    const { isMuted, backgroundMusic } = get();
     const newMutedState = !isMuted;
-    
-    // Just update the muted state
     set({ isMuted: newMutedState });
-    
-    // Log the change
+    // Pause or play background music accordingly
+    if (backgroundMusic) {
+      if (newMutedState) {
+        backgroundMusic.pause();
+      } else {
+        backgroundMusic.play().catch(err => console.log('BG music play prevented:', err));
+      }
+    }
     console.log(`Sound ${newMutedState ? 'muted' : 'unmuted'}`);
   },
   

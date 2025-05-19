@@ -1,8 +1,9 @@
-import { FC } from "react";
+import { FC, useMemo } from "react";
 import { Card, CardList } from "./Card";
 import { useGame } from "../../context/GameContext";
 import { Card as CardType } from "../../types/game";
 import { useIsMobile } from "../../hooks/use-is-mobile";
+import { motion } from "framer-motion";
 
 interface PlayerHandProps {
   className?: string;
@@ -19,6 +20,7 @@ export const PlayerHand: FC<PlayerHandProps> = ({ className }) => {
   } = useGame();
   
   const playerHand = state.players.player.hand;
+  const isMobile = useIsMobile();
   
   const handleCardClick = (card: CardType) => {
     // Different behavior based on game phase
@@ -29,84 +31,127 @@ export const PlayerHand: FC<PlayerHandProps> = ({ className }) => {
         playCard(card);
       }
     } else if (state.currentPhase === "card_exchange") {
-      // In card exchange, toggle selection of cards
-      if (selectedCards.some(sc => sc.id === card.id)) {
+      // In card exchange, clicking selects/deselects card
+      const isSelected = selectedCards.find(c => c.id === card.id);
+      if (isSelected) {
         deselectCard(card);
-      } else {
-        if (selectedCards.length < 2) {
-          selectCard(card);
-        }
+      } else if (selectedCards.length < 2) {
+        selectCard(card);
       }
     }
   };
   
-  const canPlayCard = (card: CardType): boolean => {
-    // Can't play if it's not your turn
-    if (!isPlayerTurn) return false;
-    
-    // Can only play cards during trick play phase
-    if (state.currentPhase !== "trick_play") return false;
-    
-    const currentTrick = state.currentTrick;
-    
-    // If this is the first card of the trick, any card is playable
-    if (currentTrick.cards.length === 0) return true;
-    
-    // Must follow suit if possible
-    if (currentTrick.leadSuit) {
-      // Check if player has any cards of the lead suit
-      const hasSuit = playerHand.some(c => c.suit === currentTrick.leadSuit);
-      
-      // If player has a card of the lead suit, they must play it
-      if (hasSuit) {
-        return card.suit === currentTrick.leadSuit;
-      }
-      
-      // If no cards of the lead suit, any card is playable
-      return true;
+  // Determine which cards can be played in the current trick
+  const playableCards = useMemo(() => {
+    if (state.currentPhase !== "trick_play" || !isPlayerTurn) {
+      return [];
     }
     
-    return true;
+    const leadSuit = state.currentTrick.leadSuit;
+    
+    // If player is first to play, any card is playable
+    if (!leadSuit) {
+      return playerHand.map(card => card.id);
+    }
+    
+    // Check if player has any cards of lead suit
+    const hasSuitCards = playerHand.some(card => card.suit === leadSuit);
+    
+    // If player has lead suit, only those cards are playable
+    if (hasSuitCards) {
+      return playerHand
+        .filter(card => card.suit === leadSuit)
+        .map(card => card.id);
+    }
+    
+    // If player has no lead suit, any card is playable
+    return playerHand.map(card => card.id);
+  }, [state.currentPhase, state.currentTrick.leadSuit, isPlayerTurn, playerHand]);
+  
+  const canPlayCard = (card: CardType) => {
+    return playableCards.includes(card.id);
   };
   
-  // Determine which cards are playable in the current context
-  const playableCards = playerHand.filter(canPlayCard);
-  const isMobile = useIsMobile();
-
+  // Calculate card size and overlap based on screen size and number of cards
+  const cardSize = isMobile ? "xs" : playerHand.length > 7 ? "sm" : "md";
+  
+  // Calculate container styles for the card list
+  const cardListStyles = {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative" as const,
+    minHeight: isMobile ? "90px" : "120px",
+    maxHeight: isMobile ? "100px" : "140px",
+    overflow: "visible"
+  };
+  
+  // Calculate overlap based on number of cards and available space
+  const cardOverlap = useMemo(() => {
+    // More overlap with more cards (values represent % of card width)
+    if (playerHand.length > 10) {
+      return 0.8; // 80% overlap
+    } else if (playerHand.length > 7) {
+      return 0.7; // 70% overlap
+    } else if (playerHand.length > 5) {
+      return 0.6; // 60% overlap
+    } else {
+      return 0.5; // 50% overlap
+    }
+  }, [playerHand.length]);
+  
   return (
-    <div className={`player-hand ${className || ""} w-full max-w-4xl mx-auto px-2`}>
-      <div className="text-center mb-2 font-semibold text-sm md:text-base">
-        {isPlayerTurn && state.currentPhase === "trick_play" && (
-          <span className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-2 py-1 rounded-full text-xs md:text-sm mr-2 animate-pulse">
+    <div className={`player-hand p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md ${className || ""}`}>
+      <div className="flex justify-between items-center mb-1">
+        <div className="text-sm font-medium">
+          Your Hand
+          {state.currentPhase === "card_exchange" && (
+            <span className="block text-xs text-gray-600 dark:text-gray-300 mt-1">
+              Select two cards to exchange
+            </span>
+          )}
+        </div>
+        
+        {/* Show visual cue when it's player's turn in trick play */}
+        {state.currentPhase === "trick_play" && isPlayerTurn && (
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-2 py-1 rounded-md text-xs font-medium"
+          >
             Your Turn
-          </span>
-        )}
-        Your Hand
-        {state.currentPhase === "card_exchange" && (
-          <span className="block text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">
-            Select two cards to exchange with your teammate
-          </span>
+          </motion.div>
         )}
       </div>
       
-      <CardList
-        cards={playerHand}
-        selectedCards={selectedCards}
-        onCardClick={handleCardClick}
-        playableCards={playableCards}
-        size={isMobile ? "small" : "normal"}
-        fanned={true}
-        overlap={isMobile ? 25 : 40}
-        maxWidth={isMobile ? undefined : 800} // Let it auto-calculate on mobile
-        className="transition-all duration-300"
-      />
+      <div style={cardListStyles} className="card-container">
+        <CardList
+          cards={playerHand}
+          selectedCards={selectedCards}
+          onCardClick={handleCardClick}
+          playableCards={playableCards}
+          size={cardSize}
+          fanned={true}
+          overlap={cardOverlap}
+          maxWidth={isMobile ? window.innerWidth - 40 : 700} // Adjusted to fit screen
+          className="transition-all duration-300"
+          highlightPlayable={state.currentPhase === "trick_play" && isPlayerTurn}
+        />
+      </div>
       
-      {/* Contextual help text */}
-      {state.currentPhase === "trick_play" && isPlayerTurn && playableCards.length > 0 && (
-        <div className="text-center mt-2 text-xs md:text-sm text-gray-600 dark:text-gray-300">
-          {playableCards.length < playerHand.length 
-            ? "You must follow the lead suit" 
-            : "Select a card to play"}
+      {/* Simplified contextual help text */}
+      {state.currentPhase === "trick_play" && isPlayerTurn && (
+        <div className="text-center mt-1 text-xs text-gray-600 dark:text-gray-300">
+          {state.currentTrick.leadSuit 
+            ? `Follow with ${state.currentTrick.leadSuit} if possible`
+            : "Play any card"}
+        </div>
+      )}
+      
+      {/* Selected cards count for exchange */}
+      {state.currentPhase === "card_exchange" && (
+        <div className="text-center mt-1 text-xs">
+          <span className="font-medium">{selectedCards.length}/2</span> selected
         </div>
       )}
     </div>

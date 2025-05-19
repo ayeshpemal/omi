@@ -10,6 +10,12 @@ export interface Card {
 
 export type PlayerId = "player" | "bot1" | "bot2" | "bot3";
 
+export interface GameSettings {
+  botCanInitiateHalfQuote: boolean;
+  botCanInitiateFullQuote: boolean;
+  gameStarted: boolean;
+}
+
 export interface Player {
   id: PlayerId;
   name: string;
@@ -37,6 +43,7 @@ export interface Trick {
 }
 
 export interface GameState {
+  settings: GameSettings;
   players: Record<PlayerId, Player>;
   playerOrder: PlayerId[]; // Current player order
   currentPlayerIndex: number;
@@ -59,6 +66,12 @@ export interface GameState {
   fullQuotePossible: boolean;
   exchangedCards: Record<PlayerId, Card[]>;
   message: string;
+  playersPassedFullQuote?: Set<PlayerId>; // Track players who have passed on full quote
+  trickSummary: {
+    team1Tricks: number; // Number of tricks won by team1
+    team2Tricks: number; // Number of tricks won by team2
+    tricksRequired: number; // Total tricks in the round
+  };
 }
 
 export type GameAction = 
@@ -73,4 +86,6 @@ export type GameAction =
   | { type: "PLAY_CARD", playerId: PlayerId, card: Card }
   | { type: "COMPLETE_TRICK" }
   | { type: "END_ROUND" }
-  | { type: "START_NEW_ROUND" };
+  | { type: "START_NEW_ROUND" }
+  | { type: "UPDATE_SETTINGS", settings: Partial<GameSettings> }
+  | { type: "START_GAME" };

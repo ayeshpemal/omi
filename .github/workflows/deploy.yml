@@ -1,0 +1,65 @@
+name: Deploy to EC2
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+      
+      - name: Display structure of downloaded files
+        run: ls -la dist/
+      
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+      
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          # Create a tar archive of the build
+          tar -czf app.tar.gz dist/
+          
+          # Copy the archive to the EC2 instance
+          scp app.tar.gz $EC2_USER@$EC2_HOST:~/
+          
+          # SSH into the instance and deploy
+          ssh $EC2_USER@$EC2_HOST << 'EOF'
+            # Go to the deployment directory
+            mkdir -p ~/app
+            
+            # Extract the new build
+            tar -xzf app.tar.gz -C ~/app
+            
+            # Install dependencies if needed
+            cd ~/app
+            npm ci --only=production
+            
+            # Set environment to production
+            export NODE_ENV=production
+            
+            # Restart the application with PM2 on port 5000
+            pm2 restart omi || pm2 start dist/index.js --name omi -- --port 5000
+            
+            # Clean up
+            rm ~/app.tar.gz
+          EOF
