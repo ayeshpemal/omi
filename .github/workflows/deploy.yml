@@ -19,6 +19,9 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -41,8 +44,8 @@ jobs:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
         run: |
-          # Create a tar archive of the build
-          tar -czf app.tar.gz dist/
+          # Create a tar archive that includes both the build and package files
+          tar -czf app.tar.gz dist/ package.json package-lock.json
           
           # Copy the archive to the EC2 instance
           scp app.tar.gz $EC2_USER@$EC2_HOST:~/
@@ -55,9 +58,9 @@ jobs:
             # Extract the new build
             tar -xzf app.tar.gz -C ~/app
             
-            # Install dependencies if needed
+            # Install production dependencies
             cd ~/app
-            npm ci --only=production
+            npm ci --omit=dev
             
             # Set environment to production
             export NODE_ENV=production
