@@ -129,6 +129,42 @@ jobs:
             echo "Checking port 5000:"
             netstat -tulpn | grep :5000 || ss -tulpn | grep :5000 || echo "Port 5000 not in use?"
             
+            # Fix Nginx configuration if needed
+            echo "Checking Nginx configuration for omi app..."
+            if ! grep -q "proxy_pass http://localhost:5000" /etc/nginx/sites-available/default; then
+              echo "Updating Nginx configuration to proxy to port 5000..."
+              sudo cp /etc/nginx/sites-available/default /etc/nginx/sites-available/default.bak
+              sudo tee /etc/nginx/sites-available/default > /dev/null << 'NGINX_CONF'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    
+    server_name _;
+    
+    location / {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 90;
+    }
+}
+NGINX_CONF
+              echo "Testing Nginx configuration..."
+              sudo nginx -t
+              echo "Restarting Nginx..."
+              sudo systemctl restart nginx
+            else
+              echo "Nginx configuration already contains proxy to port 5000"
+              echo "Restarting Nginx anyway to ensure configuration is applied..."
+              sudo systemctl restart nginx
+            fi
+            
             # Check NGINX status
             echo "NGINX status:"
             sudo systemctl status nginx | head -n 10
