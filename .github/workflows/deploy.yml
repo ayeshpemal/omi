@@ -118,6 +118,11 @@ jobs:
             # Save PM2 configuration to persist across reboots
             pm2 save
             
+            # Restart NGINX to ensure changes take effect
+            echo "Restarting NGINX service..."
+            sudo systemctl daemon-reload
+            sudo systemctl restart nginx
+            
             # Show running processes
             pm2 status
             
