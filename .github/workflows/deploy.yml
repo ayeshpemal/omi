@@ -15,11 +15,12 @@ jobs:
     
     steps:
       - name: Download build artifacts
-        uses: dawidd6/action-download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
-          workflow: ci.yml
           name: dist
           path: dist/
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
       
       - name: Display structure of downloaded files
         run: ls -la dist/
