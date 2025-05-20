@@ -150,6 +150,10 @@ export const GameControls: FC<GameControlsProps> = ({ className }) => {
     if (state.currentPhase === "round_end") {
       // Extract round result information
       const lastRound = state.roundHistory[state.roundHistory.length - 1];
+      
+      // Check if this was a draw (i.e., no winner recorded and no points awarded)
+      const isDraw = lastRound && lastRound.points === 0;
+      
       const winningTeam = lastRound ? lastRound.winner : null;
       const wasYourTeamWinner = winningTeam === "team1";
       
@@ -160,18 +164,25 @@ export const GameControls: FC<GameControlsProps> = ({ className }) => {
           </h3>
           
           <div className={`p-3 rounded-md text-center ${
-            wasYourTeamWinner 
-              ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100" 
-              : "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-100"
+            isDraw 
+              ? "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100"
+              : wasYourTeamWinner 
+                ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100" 
+                : "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-100"
           }`}>
             <p className="text-sm md:text-base font-medium">
-              {wasYourTeamWinner ? "Your team won this round!" : "Opponent team won this round!"}
+              {isDraw 
+                ? "The round ended in a draw!" 
+                : wasYourTeamWinner 
+                  ? "Your team won this round!" 
+                  : "Opponent team won this round!"}
             </p>
             {lastRound && (
               <div className="text-xs mt-1">
                 {lastRound.wasKapoothi && <span>Kapoothi! </span>}
                 {lastRound.wasQuote && <span>Quote succeeded! </span>}
-                <span>+{lastRound.points} points</span>
+                {lastRound.points > 0 && <span>+{lastRound.points} points</span>}
+                {isDraw && <span>No points awarded</span>}
               </div>
             )}
           </div>

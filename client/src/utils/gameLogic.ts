@@ -600,9 +600,10 @@ export function endRound(state: GameState): GameState {
     // Regular scoring - team with 5+ tricks gets 1 point
     else if (team1Tricks >= 5) {
       team1Points = REGULAR_WIN_POINTS;
-    } else {
+    } else if (team2Tricks >= 5) {
       team2Points = REGULAR_WIN_POINTS;
     }
+    // If both teams have 4 tricks each, it's a draw - no points awarded
   }
   
   // Update scores
@@ -638,6 +639,8 @@ export function endRound(state: GameState): GameState {
   } else if (wasKapoothi) {
     const kapTeam = team1Tricks === totalTricks ? "Your team" : "Opponent team";
     resultMessage = `${kapTeam} won all tricks (Kapoothi)! +${KAPOOTHI_POINTS} points`;
+  } else if (team1Tricks === 4 && team2Tricks === 4) {
+    resultMessage = `The round ended in a draw! Both teams won 4 tricks. No points awarded.`;
   } else {
     const winTeam = team1WinsRound ? "Your team" : "Opponent team";
     const winTricks = team1WinsRound ? team1Tricks : team2Tricks;
