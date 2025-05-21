@@ -1,5 +1,5 @@
 import { Card, GameAction, GameState, PlayerId, Suit, Trick } from "../types/game";
-import { KAPOOTHI_POINTS, QUOTE_POINTS, REGULAR_WIN_POINTS, TOTAL_TRICKS_PER_ROUND } from "./constants";
+import { GAME_VERSION, KAPOOTHI_POINTS, QUOTE_POINTS, REGULAR_WIN_POINTS, TOTAL_TRICKS_PER_ROUND } from "./constants";
 import { createDeck, dealCards, shuffleDeck } from "./deckUtils";
 
 /**
@@ -49,6 +49,7 @@ export function initializeGameState(): GameState {
 
   // Initial game state
   return {
+    version: GAME_VERSION,
     settings: {
       botCanInitiateHalfQuote: true,
       botCanInitiateFullQuote: true,

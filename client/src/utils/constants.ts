@@ -1,5 +1,8 @@
 import { Rank, Suit } from "../types/game";
 
+// Game version
+export const GAME_VERSION = "1.0.0";
+
 // Card values for comparison
 export const CARD_VALUES: Record<Rank, number> = {
   "7": 7,
@@ -20,6 +23,7 @@ export const SUIT_SYMBOLS: Record<Suit, string> = {
   spades: "♠",
 };
 
+// Suit colors
 export const SUIT_COLORS: Record<Suit, string> = {
   hearts: "#E31B23",
   diamonds: "#E31B23",
