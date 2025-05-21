@@ -303,6 +303,11 @@ export const GameBoard: FC = () => {
             <PlayerHand className="w-full" />
           </motion.div>
         </AnimatePresence>
+        
+        {/* Version display */}
+        <div className="absolute bottom-1 right-1 text-xs text-gray-500 dark:text-gray-400 opacity-70">
+          v{state.version}
+        </div>
       </footer>
     </div>
   );

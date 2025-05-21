@@ -43,6 +43,7 @@ export interface Trick {
 }
 
 export interface GameState {
+  version: string; // Game version information
   settings: GameSettings;
   players: Record<PlayerId, Player>;
   playerOrder: PlayerId[]; // Current player order
