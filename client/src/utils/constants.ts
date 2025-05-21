@@ -1,7 +1,7 @@
 import { Rank, Suit } from "../types/game";
 
 // Game version
-export const GAME_VERSION = "1.0.0";
+export const GAME_VERSION = "1.0.1";
 
 // Card values for comparison
 export const CARD_VALUES: Record<Rank, number> = {
