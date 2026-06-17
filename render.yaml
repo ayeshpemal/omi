@@ -1,8 +1,14 @@
 services:
   - type: web
-    name: omi
+    name: omi-web
     env: node
     plan: free
-    buildCommand: npm ci && npm run build
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run migrate && npm run build
     startCommand: npm start
     autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Set DATABASE_URL in Render dashboard (use Supabase connection string)
+      # Set SESSION_SECRET in Render dashboard (generate a long random string)
